@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Admission form page for Safachatt PG For Girls with application details and uploads." />
+    <title>Apply | Safachatt PG For Girls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+        <p>Preparing your premium stay...</p>
+    </div>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-mark"></div>
+                <div>
+                    <span>Bloom</span>
+                    <small>Girls PG</small>
+                </div>
+            </a>
+            <nav class="nav-menu" aria-label="Primary navigation">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="facilities.html">Facilities</a>
+                <a href="rooms.html">Rooms</a>
+                <a href="gallery.html">Gallery</a>
+                <a href="testimonials.html">Testimonials</a>
+                <a href="apply.html">Apply</a>
+                <a href="faq.html">FAQ</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <section class="section form-section page-section">
+            <div class="container section-heading reveal">
+                <span class="section-label">Apply Now</span>
+                <h2>Submit your PG admission request</h2>
+            </div>
+            <div class="container form-wrapper reveal">
+                <form id="applicationForm" class="application-form" novalidate>
+                    <div class="form-grid">
+                        <fieldset>
+                            <legend>Personal Details</legend>
+                            <div class="field-group">
+                                <label for="fullName">Full Name *</label>
+                                <input type="text" id="fullName" name="fullName" placeholder="Enter your full name"
+                                    required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="fatherName">Father Name *</label>
+                                <input type="text" id="fatherName" name="fatherName" placeholder="Enter father name"
+                                    required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="motherName">Mother Name *</label>
+                                <input type="text" id="motherName" name="motherName" placeholder="Enter mother name"
+                                    required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-row">
+                                <div class="field-group small">
+                                    <label for="dob">Date of Birth *</label>
+                                    <input type="date" id="dob" name="dob" required />
+                                    <span class="error-message"></span>
+                                </div>
+                                <div class="field-group small">
+                                    <label for="age">Age (Auto-filled) *</label>
+                                    <input type="number" id="age" name="age" min="18" max="60" readonly required />
+                                    <span class="error-message"></span>
+                                </div>
+                            </div>
+                            <div class="field-row">
+                                <div class="field-group small">
+                                    <label for="mobile">Mobile Number *</label>
+                                    <input type="tel" id="mobile" name="mobile" placeholder="Enter mobile number"
+                                        required pattern="[0-9]{10}" />
+                                    <span class="error-message"></span>
+                                </div>
+                                <div class="field-group small">
+                                    <label for="alternateNumber">Alternate Number</label>
+                                    <input type="tel" id="alternateNumber" name="alternateNumber"
+                                        placeholder="Alternate contact" pattern="[0-9]{10}" />
+                                    <span class="error-message"></span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" name="email" placeholder="example@mail.com" required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="aadhaar">Aadhaar Number *</label>
+                                <input type="text" id="aadhaar" name="aadhaar" maxlength="12"
+                                    placeholder="12 digit Aadhaar" required pattern="[0-9]{12}" />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="address">Permanent Address *</label>
+                                <textarea id="address" name="address" rows="3"
+                                    placeholder="Enter your permanent address" required></textarea>
+                                <span class="error-message"></span>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Education / Work</legend>
+                            <div class="field-group">
+                                <label for="status">Student or Working Professional *</label>
+                                <select id="status" name="status" required>
+                                    <option value="">Select status</option>
+                                    <option>Student</option>
+                                    <option>Working Professional</option>
+                                </select>
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="institution">College / Company Name *</label>
+                                <input type="text" id="institution" name="institution" placeholder="College or company"
+                                    required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="position">Course / Job Role *</label>
+                                <input type="text" id="position" name="position" placeholder="Course or role"
+                                    required />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="roomType">Room Type *</label>
+                                <select id="roomType" name="roomType" required>
+                                    <option value="">Choose room type</option>
+                                    <option>Single Sharing</option>
+                                    <option>Double Sharing</option>
+                                    <option>Triple Sharing</option>
+                                </select>
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-row">
+                                <div class="field-group small">
+                                    <label for="moveInDate">Move-in Date *</label>
+                                    <input type="date" id="moveInDate" name="moveInDate" required />
+                                    <span class="error-message"></span>
+                                </div>
+                                <div class="field-group small">
+                                    <label for="duration">Duration of Stay *</label>
+                                    <select id="duration" name="duration" required>
+                                        <option value="">Select duration</option>
+                                        <option>3 Months</option>
+                                        <option>6 Months</option>
+                                        <option>12 Months</option>
+                                    </select>
+                                    <span class="error-message"></span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="foodPref">Food Preference *</label>
+                                <select id="foodPref" name="foodPref" required>
+                                    <option value="">Choose preference</option>
+                                    <option>Veg</option>
+                                    <option>Veg + Snacks</option>
+                                    <option>Custom Diet</option>
+                                </select>
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="upload-group">
+                                <div class="field-group">
+                                    <label for="passportPhoto">Passport Photo Upload *</label>
+                                    <input type="file" id="passportPhoto" name="passportPhoto" accept="image/*"
+                                        required />
+                                    <span class="error-message"></span>
+                                </div>
+                                <div class="field-group">
+                                    <label for="aadhaarUpload">Aadhaar Upload *</label>
+                                    <input type="file" id="aadhaarUpload" name="aadhaarUpload"
+                                        accept="image/*,application/pdf" required />
+                                    <span class="error-message"></span>
+                                </div>
+                                <div class="field-group">
+                                    <label for="idCardUpload">ID Card Upload *</label>
+                                    <input type="file" id="idCardUpload" name="idCardUpload"
+                                        accept="image/*,application/pdf" required />
+                                    <span class="error-message"></span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="emergencyContact">Emergency Contact *</label>
+                                <input type="tel" id="emergencyContact" name="emergencyContact"
+                                    placeholder="Emergency contact number" required pattern="[0-9]{10}" />
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group">
+                                <label for="medicalConditions">Medical Conditions</label>
+                                <textarea id="medicalConditions" name="medicalConditions" rows="3"
+                                    placeholder="Please specify if any"></textarea>
+                                <span class="error-message"></span>
+                            </div>
+                            <div class="field-group checkbox-group">
+                                <input type="checkbox" id="agreement" name="agreement" required />
+                                <label for="agreement">I agree to the terms and conditions and confirm that the
+                                    information is accurate.</label>
+                                <span class="error-message"></span>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="form-actions">
+                        <button type="reset" class="btn btn-secondary">Reset Form</button>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+    <footer class="site-footer reveal">
+        <div class="container footer-grid">
+            <div>
+                <h3>Safachatt PG For Girls</h3>
+                <p>Modern girls accommodation with premium services, safety and a supportive community.</p>
+            </div>
+            <div>
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="rooms.html">Rooms</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="apply.html">Apply</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Contact</h4>
+                <p><a href="tel:+919876543210">+91 98765 43210</a></p>
+                <p><a href="mailto:info@bloomgirlspg.com">info@bloomgirlspg.com</a></p>
+            </div>
+            <div>
+                <h4>Follow Us</h4>
+                <div class="footer-socials">
+                    <a href="#">Instagram</a>
+                    <a href="#">Facebook</a>
+                    <a href="#">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Safachatt PG For Girls. All rights reserved.</p>
+            <button id="backToTop" class="back-top" aria-label="Back to top">↑ Top</button>
+        </div>
+    </footer>
+    <div class="whatsapp-float">
+        <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp">WhatsApp</a>
+    </div>
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+        <button class="lightbox-close" aria-label="Close preview">×</button>
+        <img src="" alt="Gallery preview" />
+    </div>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="successModal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modalTitle">
+        <div class="modal-card">
+            <h2 id="modalTitle">Application Submitted!</h2>
+            <p>Your admission request has been saved successfully. Our team will contact you shortly.</p>
+            <button id="closeModal" class="btn btn-primary">Close</button>
+        </div>
+    </div>
+    <!-- Firebase SDK (Compat version for compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Contact page for Safachatt PG For Girls with address, phone, email, map, and contact form." />
+    <title>Contact | Safachatt PG For Girls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+        <p>Preparing your premium stay...</p>
+    </div>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-mark"></div>
+                <div>
+                    <span>Safachatt</span>
+                    <small>PG For Girls</small>
+                </div>
+            </a>
+            <nav class="nav-menu" aria-label="Primary navigation">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="facilities.html">Facilities</a>
+                <a href="rooms.html">Rooms</a>
+                <a href="gallery.html">Gallery</a>
+                <a href="testimonials.html">Testimonials</a>
+                <a href="apply.html">Apply</a>
+                <a href="faq.html">FAQ</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <section class="section contact-section page-section">
+            <div class="container contact-grid reveal">
+                <div class="contact-details">
+                    <span class="section-label">Contact</span>
+                    <h2>Reach out to reserve your room</h2>
+                    <p>We are happy to answer your questions and help you find a comfortable stay that fits your needs.
+                    </p>
+                    <div class="info-block">
+                        <h3>Address</h3>
+                        <p>C8/17 block C Govindpuaram Ghaziabad UP 201013</p>
+                    </div>
+                    <div class="info-block">
+                        <h3>Phone</h3>
+                        <p><a href="tel:+919625290733">+91 9625290733</a></p>
+                    </div>
+                    <div class="info-block">
+                        <h3>Email</h3>
+                        <p><a href="mailto:mjsafachattgroup@gmail.com">mjsafachattgroup@gmail.com</a></p>
+                    </div>
+                </div>
+                <div class="contact-form-card reveal">
+                    <form id="contactForm" class="contact-form" novalidate>
+                        <div class="field-group">
+                            <label for="contactName">Your Name</label>
+                            <input type="text" id="contactName" name="contactName" placeholder="Name" required />
+                            <span class="error-message"></span>
+                        </div>
+                        <div class="field-group">
+                            <label for="contactEmail">Email Address</label>
+                            <input type="email" id="contactEmail" name="contactEmail" placeholder="Email" required />
+                            <span class="error-message"></span>
+                        </div>
+                        <div class="field-group">
+                            <label for="contactPhone">Phone Number</label>
+                            <input type="tel" id="contactPhone" name="contactPhone" placeholder="Phone" required
+                                pattern="[0-9]{10}" />
+                            <span class="error-message"></span>
+                        </div>
+                        <div class="field-group">
+                            <label for="contactMessage">Message</label>
+                            <textarea id="contactMessage" name="contactMessage" rows="4" placeholder="Your message"
+                                required></textarea>
+                            <span class="error-message"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+            </div>
+            <div class="container map-frame reveal">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3500.280026341235!2d77.49058027625074!3d28.681268875638228!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cf3537eaf97cd%3A0x6653291d879d60ed!2sSafachatt%20PG%20for%20Girls!5e0!3m2!1sen!2sin!4v1778858486212!5m2!1sen!2sin"
+                    width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+        </section>
+    </main>
+    <footer class="site-footer reveal">
+        <div class="container footer-grid">
+            <div>
+                <h3>Safachatt PG For Girls</h3>
+                <p>Modern girls accommodation with premium services, safety and a supportive community.</p>
+            </div>
+            <div>
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="rooms.html">Rooms</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="apply.html">Apply</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Contact</h4>
+                <p><a href="tel:+919625290733">+91 9625290733</a></p>
+                <p><a href="mailto:mjsafachattgroup@gmail.com">mjsafachattgroup@gmail.com</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Safachatt PG For Girls. All rights reserved.</p>
+            <button id="backToTop" class="back-top" aria-label="Back to top">↑ Top</button>
+        </div>
+    </footer>
+    <div class="whatsapp-float">
+        <a href="https://wa.me/919625290733" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp">WhatsApp</a>
+    </div>
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+        <button class="lightbox-close" aria-label="Close preview">×</button>
+        <img src="" alt="Gallery preview" />
+    </div>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="successModal" class="modal" aria-hidden="true">
+        <div class="modal-card">
+            <h2>Application Submitted!</h2>
+            <p>Your admission request has been saved successfully. Our team will contact you shortly.</p>
+            <button id="closeModal" class="btn btn-primary">Close</button>
+        </div>
+    </div>
+    <!-- Firebase SDK (Compat version for compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Room types page for Safachatt PG for Girls with single, double and triple sharing options." />
+    <title>Rooms | Safachatt PG for Girls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+        <p>Preparing your premium stay...</p>
+    </div>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-mark"></div>
+                <div>
+                    <span>Safachatt PG</span>
+                    <small>For Girls</small>
+                </div>
+            </a>
+            <nav class="nav-menu" aria-label="Primary navigation">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="facilities.html">Facilities</a>
+                <a href="rooms.html">Rooms</a>
+                <a href="gallery.html">Gallery</a>
+                <a href="testimonials.html">Testimonials</a>
+                <a href="apply.html">Registration</a>
+                <a href="faq.html">FAQ</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <section class="section rooms-section page-section">
+            <div class="container section-heading reveal">
+                <span class="section-label">Rooms</span>
+                <h2>Room types crafted for every lifestyle</h2>
+            </div>
+            <div class="container rooms-grid reveal">
+                <article class="room-card">
+                    <div class="room-header">
+                        <span>Double Sharing</span>
+                        <span class="badge limited">Limited</span>
+                    </div>
+                    <h3>₹8,999<span>/month</span></h3>
+                    <ul>
+                        <li>Shared cozy bedroom</li>
+                        <li>Study desk & storage</li>
+                        <li>Cooler / Geusure</li>
+                        <li>WiFi and meals included</li>
+                        <li>Shared bathroom</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-secondary">Book Now</a>
+                </article>
+                <article class="room-card">
+                    <div class="room-header">
+                        <span>Triple Sharing</span>
+                        <span class="badge new">Not Available</span>
+                    </div>
+                    <h3>₹7,499<span>/month</span></h3>
+                    <ul>
+                        <li>Shared cozy bedroom</li>
+                        <li>Study desk & storage</li>
+                        <li>Cooler / Geusure</li>
+                        <li>WiFi and meals included</li>
+                        <li>Shared bathroom</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-secondary">Book Now</a>
+                </article>
+            </div>
+        </section>
+    </main>
+    <footer class="site-footer reveal">
+        <div class="container footer-grid">
+            <div>
+                <h3>Safachatt PG for Girls</h3>
+                <p>Modern girls accommodation with premium services, safety and a supportive community.</p>
+            </div>
+            <div>
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="rooms.html">Rooms</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="apply.html">Apply</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Contact</h4>
+                <p><a href="tel:+919876543210">+91 98765 43210</a></p>
+                <p><a href="mailto:info@bloomgirlspg.com">info@bloomgirlspg.com</a></p>
+            </div>
+            <div>
+                <h4>Follow Us</h4>
+                <div class="footer-socials">
+                    <a href="#">Instagram</a>
+                    <a href="#">Facebook</a>
+                    <a href="#">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Safachatt PG for Girls. All rights reserved.</p>
+            <button id="backToTop" class="back-top" aria-label="Back to top">↑ Top</button>
+        </div>
+    </footer>
+    <div class="whatsapp-float">
+        <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp">WhatsApp</a>
+    </div>
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+        <button class="lightbox-close" aria-label="Close preview">×</button>
+        <img src="" alt="Gallery preview" />
+    </div>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="successModal" class="modal" aria-hidden="true">
+        <div class="modal-card">
+            <h2>Application Submitted!</h2>
+            <p>Your admission request has been saved successfully. Our team will contact you shortly.</p>
+            <button id="closeModal" class="btn btn-primary">Close</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
