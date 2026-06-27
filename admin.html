@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Admin dashboard for Safachatt PG to review all registration and contact submissions in one place." />
+    <title>Admin Dashboard | Safachatt PG For Girls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+        <p>Preparing your premium stay...</p>
+    </div>
+    <div id="adminLoginOverlay" class="admin-login-overlay">
+        <div class="admin-login-card">
+            <h2>Admin Login</h2>
+            <p>Enter the admin password to access registration and contact details.</p>
+            <label for="adminPassword">Password</label>
+            <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin password" />
+            <div class="login-actions">
+                <button id="adminUnlockButton" class="btn btn-primary">Unlock Dashboard</button>
+            </div>
+        </div>
+    </div>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-mark"></div>
+                <div>
+                    <span>Safachatt</span>
+                    <small>PG For Girls</small>
+                </div>
+            </a>
+            <nav class="nav-menu" aria-label="Primary navigation">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="facilities.html">Facilities</a>
+                <a href="rooms.html">Rooms</a>
+                <a href="gallery.html">Gallery</a>
+                <a href="testimonials.html">Testimonials</a>
+                <a href="apply.html">Registration</a>
+                <a href="faq.html">FAQ</a>
+                <a href="admin.html">Admin</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <section class="section page-section">
+            <div class="container section-heading reveal">
+                <span class="section-label">Admin Dashboard</span>
+                <h2>Review registrations and contact requests</h2>
+                <p>All application submissions and contact messages are shown here in one place.</p>
+            </div>
+            <div class="container admin-controls reveal">
+                <div class="admin-tabs admin-tab-list">
+                    <button type="button" class="btn admin-tab-button active"
+                        data-panel="applications">Registrations</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="contacts">Contact Messages</button>
+                </div>
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <h3 id="adminTotalApplications">0</h3>
+                        <p>Registrations</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="adminTotalContacts">0</h3>
+                        <p>Contact messages</p>
+                    </div>
+                </div>
+                <button id="refreshAdmin" class="btn btn-secondary">Refresh Data</button>
+            </div>
+
+            <div class="container admin-table-container admin-panel reveal" data-panel="applications">
+                <h3>Application Submissions</h3>
+                <div class="admin-table-scroll">
+                    <table class="admin-table admin-vertical-table">
+                        <thead>
+                            <tr>
+                                <th>Details</th>
+                                <th id="applicantHeaderContainer"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="applicationsTableBody">
+                            <tr>
+                                <td colspan="10">Loading application entries…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="contacts">
+                <h3>Contact Messages</h3>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Contact</th>
+                            <th>Message</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                        <tr>
+                            <td colspan="3">Loading contact messages…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <footer class="site-footer reveal">
+        <div class="container footer-grid">
+            <div>
+                <h3>Safachatt PG For Girls</h3>
+                <p>Modern girls accommodation with premium services, safety and a supportive community.</p>
+            </div>
+            <div>
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="rooms.html">Rooms</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="apply.html">Apply</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Contact</h4>
+                <p><a href="tel:+919625290733">+91 9625290733</a></p>
+                <p><a href="mailto:mjsafachattgroup@gmail.com">mjsafachattgroup@gmail.com</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Safachatt PG For Girls. All rights reserved.</p>
+            <button id="backToTop" class="back-top" aria-label="Back to top">↑ Top</button>
+        </div>
+    </footer>
+    <div class="whatsapp-float">
+        <a href="https://wa.me/919625290733" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp">WhatsApp</a>
+    </div>
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+        <button class="lightbox-close" aria-label="Close preview">×</button>
+        <img src="" alt="Gallery preview" />
+    </div>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="successModal" class="modal" aria-hidden="true">
+        <div class="modal-card">
+            <h2>Loading complete</h2>
+            <p>Use the refresh button if you want to reload registration and contact details.</p>
+            <button id="closeModal" class="btn btn-primary">Close</button>
+        </div>
+    </div>
+    <!-- Firebase SDK (Compat version for compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -121,6 +121,19 @@ const contactForm = document.getElementById('contactForm');
 const faqButtons = document.querySelectorAll('.faq-question');
 const counters = document.querySelectorAll('.counter');
 const testimonialCards = document.querySelectorAll('.testimonial-card');
+const adminApplicationsTableBody = document.getElementById('applicationsTableBody');
+const adminContactsTableBody = document.getElementById('contactsTableBody');
+const adminTotalApplications = document.getElementById('adminTotalApplications');
+const adminTotalContacts = document.getElementById('adminTotalContacts');
+const refreshAdminButton = document.getElementById('refreshAdmin');
+const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+const adminPasswordInput = document.getElementById('adminPassword');
+const adminUnlockButton = document.getElementById('adminUnlockButton');
+const adminTabButtons = document.querySelectorAll('.admin-tab-button');
+const adminPanels = document.querySelectorAll('.admin-panel');
+const adminLoginButton = document.getElementById('adminLoginButton');
+const adminAccessKey = 'safachatt-admin-access';
+const adminPassword = 'Safachatt2026!';
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -257,6 +270,236 @@ const toggleBackToTop = () => {
     backToTop.classList.toggle('visible', window.scrollY > 500);
 };
 
+const sanitizeText = (value) => {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+
+const formatSubmittedAt = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? sanitizeText(value) : date.toLocaleString();
+};
+
+const isImageUrl = (value) => {
+    if (!value || typeof value !== 'string') return false;
+    return value.startsWith('http') || /\.(jpe?g|png|webp|gif|svg)$/i.test(value);
+};
+
+const toggleAdminPanel = (panelName) => {
+    adminTabButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.panel === panelName);
+    });
+    adminPanels.forEach((panel) => {
+        panel.classList.toggle('hidden', panel.dataset.panel !== panelName);
+    });
+};
+
+const unlockAdminAccess = () => {
+    const entered = adminPasswordInput?.value ?? '';
+    if (entered === adminPassword) {
+        adminLoginOverlay?.classList.add('hidden');
+        loadAdminData();
+        showToast('Admin access granted.');
+        if (adminPasswordInput) {
+            adminPasswordInput.value = '';
+        }
+    } else {
+        showToast('Incorrect password. Please try again.');
+        if (adminPasswordInput) {
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+        }
+    }
+};
+
+const checkAdminAccess = () => {
+    if (!adminLoginOverlay) return;
+
+    localStorage.removeItem(adminAccessKey);
+    adminLoginOverlay.classList.remove('hidden');
+
+    if (adminPasswordInput) {
+        adminPasswordInput.value = '';
+        adminPasswordInput.focus();
+    }
+};
+
+const createApplicationDetails = (data) => {
+    if (!data) return '-';
+    const rows = [
+        ['Father Name', data.fatherName],
+        ['Mother Name', data.motherName],
+        ['DOB', data.dob],
+        ['Age', data.age],
+        ['Alternate Number', data.alternateNumber],
+        ['Aadhaar', data.aadhaar],
+        ['Address', data.address],
+        ['Status', data.status],
+        ['Institution', data.institution],
+        ['Course / Role', data.position],
+        ['Food Preference', data.foodPref],
+        ['Emergency Contact', data.emergencyContact],
+        ['Medical Conditions', data.medicalConditions],
+        ['Passport Photo', data.passportPhoto],
+        ['Aadhaar Upload', data.aadhaarUpload],
+        ['ID Card Upload', data.idCardUpload]
+    ];
+    return `
+        <details class="admin-details">
+            <summary>View all fields</summary>
+            <div class="details-grid">
+                ${rows.map(([label, value]) => `<div><strong>${sanitizeText(label)}:</strong> ${sanitizeText(value || '-')}</div>`).join('')}
+            </div>
+        </details>
+    `;
+};
+
+const renderApplicationsTable = (entries) => {
+    if (!adminApplicationsTableBody) return;
+    if (!entries.length) {
+        adminApplicationsTableBody.innerHTML = '<tr><td colspan="10">No applications found.</td></tr>';
+        return;
+    }
+
+    const applicantHeaderContainer = document.getElementById('applicantHeaderContainer');
+    if (applicantHeaderContainer) {
+        applicantHeaderContainer.innerHTML = entries
+            .map((_, index) => `<th>${index + 1}</th>`)
+            .join('');
+    }
+
+    const fieldLabels = [
+        ['Applicant Name', 'fullName'],
+        ['Photo', 'passportPhoto'],
+        ['Email', 'email'],
+        ['Father Name', 'fatherName'],
+        ['Mother Name', 'motherName'],
+        ['DOB', 'dob'],
+        ['Age', 'age'],
+        ['Alternate Number', 'alternateNumber'],
+        ['Aadhaar', 'aadhaar'],
+        ['Address', 'address'],
+        ['Status', 'status'],
+        ['Institution', 'institution'],
+        ['Course / Role', 'position'],
+        ['Food Preference', 'foodPref'],
+        ['Emergency Contact', 'emergencyContact'],
+        ['Medical Conditions', 'medicalConditions'],
+        ['Aadhaar Upload', 'aadhaarUpload'],
+        ['ID Card Upload', 'idCardUpload']
+    ];
+
+    adminApplicationsTableBody.innerHTML = fieldLabels
+        .map(([label, key]) => {
+            const cells = entries
+                .map(([_, data]) => {
+                    const value = data[key] || '-';
+                    // Display all photo fields as image previews
+                    if ((key === 'passportPhoto' || key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
+                        return `<td><img src="${sanitizeText(value)}" alt="${label}" class="admin-photo-preview" /></td>`;
+                    }
+                    return `<td>${sanitizeText(value)}</td>`;
+                })
+                .join('');
+            return `<tr><th>${sanitizeText(label)}</th>${cells}</tr>`;
+        })
+        .join('');
+};
+
+const renderContactsTable = (entries) => {
+    if (!adminContactsTableBody) return;
+    if (!entries.length) {
+        adminContactsTableBody.innerHTML = '<tr><td colspan="3">No contact messages found.</td></tr>';
+        return;
+    }
+    adminContactsTableBody.innerHTML = entries.map(([id, data]) => `
+        <tr>
+            <td>
+                <div class="contact-column">
+                    <strong>${sanitizeText(data.contactName)}</strong>
+                    <div>${sanitizeText(data.contactPhone)}</div>
+                    <div class="applicant-meta">${sanitizeText(data.contactEmail)}</div>
+                </div>
+            </td>
+            <td>${sanitizeText(data.contactMessage)}</td>
+            <td>${formatSubmittedAt(data.submittedAt)}</td>
+        </tr>
+    `).join('');
+};
+
+const updateAdminTotals = (apps, contacts) => {
+    if (adminTotalApplications) adminTotalApplications.textContent = String(apps.length);
+    if (adminTotalContacts) adminTotalContacts.textContent = String(contacts.length);
+};
+
+const loadAdminData = async () => {
+    if (!firebaseDatabase) {
+        showToast('Firebase not initialized. Admin data cannot load.');
+        return;
+    }
+
+    try {
+        const [appsSnapshot, contactsSnapshot] = await Promise.all([
+            firebaseDatabase.ref('applications').orderByKey().once('value'),
+            firebaseDatabase.ref('contactMessages').orderByKey().once('value')
+        ]);
+
+        const appsData = appsSnapshot.val() || {};
+        const contactsData = contactsSnapshot.val() || {};
+        const applicationEntries = Object.entries(appsData).sort(([a], [b]) => Number(a) - Number(b));
+        const contactEntries = Object.entries(contactsData).sort(([a], [b]) => Number(a) - Number(b));
+
+        renderApplicationsTable(applicationEntries);
+        renderContactsTable(contactEntries);
+        updateAdminTotals(applicationEntries, contactEntries);
+    } catch (error) {
+        console.error('Error loading admin data:', error);
+        if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
+        if (adminContactsTableBody) adminContactsTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
+        showToast('Unable to load admin dashboard data.');
+    }
+};
+
+const initAdminDashboard = () => {
+    if (!adminApplicationsTableBody && !adminContactsTableBody && !adminLoginOverlay) return;
+    checkAdminAccess();
+    if (refreshAdminButton) {
+        refreshAdminButton.addEventListener('click', () => {
+            showToast('Refreshing admin data...');
+            loadAdminData();
+        });
+    }
+
+    if (adminUnlockButton) {
+        adminUnlockButton.addEventListener('click', unlockAdminAccess);
+    }
+
+    if (adminPasswordInput) {
+        adminPasswordInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                unlockAdminAccess();
+            }
+        });
+    }
+
+    if (adminTabButtons.length) {
+        adminTabButtons.forEach((button) => {
+            button.addEventListener('click', () => toggleAdminPanel(button.dataset.panel));
+        });
+    }
+
+    if (adminLoginButton) {
+        adminLoginButton.addEventListener('click', () => {
+            const provided = prompt('Enter admin password to access dashboard');
+            if (provided === adminPassword) {
+                window.location.href = 'admin.html';
+            } else if (provided !== null) {
+                showToast('Incorrect admin password.');
+            }
+        });
+    }
+};
+
 const showLightbox = (imageSrc, imageAlt) => {
     lightboxImage.src = imageSrc;
     lightboxImage.alt = imageAlt;
@@ -275,9 +518,25 @@ const getFormData = (formElement) => {
     if (!formElement) return data;
     const formData = new FormData(formElement);
     formData.forEach((value, key) => {
-        data[key] = value instanceof File ? value.name : value;
+        if (value instanceof File) {
+            data[key] = value.size ? value : null;
+        } else {
+            data[key] = value;
+        }
     });
     return data;
+};
+
+const uploadFileToStorage = async (file, folder) => {
+    if (!firebaseDatabase || !file || !(file instanceof File)) return null;
+    try {
+        const storageRef = firebase.storage().ref(`${folder}/${Date.now()}-${file.name}`);
+        const snapshot = await storageRef.put(file);
+        return await snapshot.ref.getDownloadURL();
+    } catch (error) {
+        console.error('Error uploading file to Firebase Storage:', error);
+        return null;
+    }
 };
 
 const saveApplicationData = () => {
@@ -295,9 +554,20 @@ const saveFormToFirebase = async (formElement, collectionName) => {
     try {
         const timestamp = new Date().toISOString();
         const formData = getFormData(formElement);
+        const processedData = {};
+
+        for (const [key, value] of Object.entries(formData)) {
+            if (value instanceof File && value.name) {
+                const downloadUrl = await uploadFileToStorage(value, collectionName);
+                processedData[key] = downloadUrl || value.name;
+            } else {
+                processedData[key] = value;
+            }
+        }
+
         const databaseRef = firebaseDatabase.ref(`${collectionName}/${Date.now()}`);
         const dataToSave = {
-            ...formData,
+            ...processedData,
             submittedAt: timestamp,
             formVersion: '1.0'
         };
@@ -355,16 +625,14 @@ const animateSubmit = async () => {
     if (!applicationForm) return;
     applicationForm.classList.add('loading');
 
-    // Get form data and save to Firebase
-    const formData = getFormData();
-    const savedToFirebase = await saveApplicationToFirebase(formData);
+    const savedToFirebase = await saveFormToFirebase(applicationForm, 'applications');
 
     setTimeout(() => {
         applicationForm.classList.remove('loading');
         openModal();
         const message = savedToFirebase
             ? 'Your application has been submitted successfully and saved to database.'
-            : 'Your application has been submitted (local save).';
+            : 'Your application has been submitted (saving failed).';
         showToast(message);
     }, 1200);
 };
@@ -489,6 +757,15 @@ window.addEventListener('DOMContentLoaded', () => {
     revealOnScroll();
     handleCounter();
     initContactForm();
+    initAdminDashboard();
+
+    // Admin Login button - navigate to admin page
+    if (adminLoginButton) {
+        adminLoginButton.addEventListener('click', () => {
+            window.location.href = 'admin.html';
+        });
+    }
+
     setTimeout(() => {
         if (pageLoader) {
             pageLoader.style.opacity = '0';
