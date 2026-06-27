@@ -298,6 +298,7 @@ const unlockAdminAccess = () => {
     const entered = adminPasswordInput?.value ?? '';
     if (entered === adminPassword) {
         adminLoginOverlay?.classList.add('hidden');
+        document.body.classList.remove('admin-login-hidden');
         loadAdminData();
         showToast('Admin access granted.');
         if (adminPasswordInput) {
@@ -316,6 +317,7 @@ const checkAdminAccess = () => {
     if (!adminLoginOverlay) return;
 
     localStorage.removeItem(adminAccessKey);
+    document.body.classList.add('admin-login-hidden');
     adminLoginOverlay.classList.remove('hidden');
 
     if (adminPasswordInput) {
