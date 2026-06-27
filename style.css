@@ -1068,12 +1068,12 @@ p {
     gap: 2rem;
     flex-wrap: wrap;
     margin-bottom: 2.5rem;
-    \n padding: 1.5rem;
-    \n background: linear-gradient(135deg, rgba(199, 125, 255, 0.08), rgba(199, 125, 255, 0.02));
-    \n border-radius: 16px;
-    \n border: 1px solid rgba(199, 125, 255, 0.12);
-    \n box-shadow: 0 4px 16px rgba(114, 70, 180, 0.04);
-    \n
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(199, 125, 255, 0.08), rgba(199, 125, 255, 0.02));
+    border-radius: 16px;
+    border: 1px solid rgba(199, 125, 255, 0.12);
+    box-shadow: 0 4px 16px rgba(114, 70, 180, 0.04);
+
 }
 
 .admin-table-container {
@@ -1184,8 +1184,8 @@ p {
 }
 
 .admin-photo-preview {
-    width: 110px;
-    height: 70px;
+    width: 350px;
+    height: 200px;
     object-fit: cover;
     border-radius: 8px;
     border: 2px solid rgba(199, 125, 255, 0.2);
