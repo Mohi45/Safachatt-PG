@@ -546,9 +546,24 @@ const getFormData = (formElement) => {
 
 const uploadFileToStorage = async (file, folder) => {
     if (!firebaseDatabase || !file || !(file instanceof File)) return null;
+
+    const isGithubHost = window.location.origin.includes('github.io');
+    if (isGithubHost) {
+        console.warn('Skipping Firebase Storage upload on GitHub Pages origin; using inline data URL fallback.');
+        try {
+            return await fileToDataUrl(file);
+        } catch (readError) {
+            console.error('Error converting file to data URL:', readError);
+            return null;
+        }
+    }
+
+    const storageRef = firebase.storage().ref(`${folder}/${Date.now()}-${file.name}`);
     try {
-        const storageRef = firebase.storage().ref(`${folder}/${Date.now()}-${file.name}`);
-        const snapshot = await storageRef.put(file);
+        const snapshot = await Promise.race([
+            storageRef.put(file),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase Storage upload timed out')), 8000))
+        ]);
         return await snapshot.ref.getDownloadURL();
     } catch (error) {
         console.error('Error uploading file to Firebase Storage:', error);
