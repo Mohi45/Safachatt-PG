@@ -11,7 +11,7 @@ const initializeFirebase = () => {
             authDomain: "safachattpg.firebaseapp.com",
             databaseURL: "https://safachattpg-default-rtdb.firebaseio.com/",
             projectId: "safachattpg",
-            storageBucket: "safachattpg.firebasestorage.app",
+            storageBucket: "safachattpg.appspot.com",
             messagingSenderId: "995130651401",
             appId: "1:995130651401:web:a9320f26512c9314b519d8"
         };
@@ -56,8 +56,10 @@ const updateAgeField = () => {
 
     if (dobField && ageField && dobField.value) {
         const age = calculateAge(dobField.value);
-        if (age >= 18 && age <= 60) {
+        if (!Number.isNaN(age) && age >= 0) {
             ageField.value = age;
+        } else {
+            ageField.value = '';
         }
     }
 };
