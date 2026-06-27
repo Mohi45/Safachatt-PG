@@ -284,7 +284,20 @@ const formatSubmittedAt = (value) => {
 
 const isImageUrl = (value) => {
     if (!value || typeof value !== 'string') return false;
-    return value.startsWith('http') || /\.(jpe?g|png|webp|gif|svg)$/i.test(value);
+    return value.startsWith('data:image/') || value.startsWith('http') || /\.(jpe?g|png|webp|gif|svg)$/i.test(value);
+};
+
+const fileToDataUrl = (file) => {
+    return new Promise((resolve, reject) => {
+        if (!(file instanceof File)) {
+            reject(new Error('Invalid file object'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file as data URL'));
+        reader.readAsDataURL(file);
+    });
 };
 
 const toggleAdminPanel = (panelName) => {
@@ -539,7 +552,13 @@ const uploadFileToStorage = async (file, folder) => {
         return await snapshot.ref.getDownloadURL();
     } catch (error) {
         console.error('Error uploading file to Firebase Storage:', error);
-        return null;
+        console.warn('Falling back to inline file storage in Firebase Database as a data URL.');
+        try {
+            return await fileToDataUrl(file);
+        } catch (readError) {
+            console.error('Error converting file to data URL:', readError);
+            return null;
+        }
     }
 };
 
