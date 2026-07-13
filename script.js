@@ -309,6 +309,30 @@ const toggleAdminPanel = (panelName) => {
     });
 };
 
+const getResidentStatus = (data) => {
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const moveOutDate = data?.moveOutDate;
+    const moveInDate = data?.moveInDate;
+
+    if (moveOutDate) {
+        const parsedMoveOutDate = new Date(moveOutDate);
+        const normalizedMoveOutDate = new Date(parsedMoveOutDate.getFullYear(), parsedMoveOutDate.getMonth(), parsedMoveOutDate.getDate());
+        if (!Number.isNaN(normalizedMoveOutDate.getTime()) && normalizedMoveOutDate <= todayDate) {
+            return { label: 'Checked Out', className: 'checked-out' };
+        }
+        if (!Number.isNaN(normalizedMoveOutDate.getTime())) {
+            return { label: 'Leaving Soon', className: 'leaving-soon' };
+        }
+    }
+
+    if (moveInDate) {
+        return { label: 'Active', className: 'active' };
+    }
+
+    return { label: 'Pending', className: 'pending' };
+};
+
 const unlockAdminAccess = () => {
     const entered = adminPasswordInput?.value ?? '';
     if (entered === adminPassword) {
@@ -348,6 +372,8 @@ const createApplicationDetails = (data) => {
         ['Mother Name', data.motherName],
         ['DOB', data.dob],
         ['Age', data.age],
+        ['Move-in Date', data.moveInDate],
+        ['Move Out Date', data.moveOutDate],
         ['Alternate Number', data.alternateNumber],
         ['Aadhaar', data.aadhaar],
         ['Address', data.address],
@@ -369,6 +395,29 @@ const createApplicationDetails = (data) => {
             </div>
         </details>
     `;
+};
+
+const updateMoveOutDateInFirebase = async (entryId, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        await firebaseDatabase.ref(`applications/${entryId}`).update({ moveOutDate: value || '' });
+        showToast('Move-out date updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating move-out date:', error);
+        showToast('Unable to update move-out date.');
+        return false;
+    }
+};
+
+const attachMoveOutDateHandlers = () => {
+    document.querySelectorAll('.admin-move-out-date').forEach((input) => {
+        input.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            const entryId = target.dataset.entryId;
+            await updateMoveOutDateInFirebase(entryId, target.value);
+        });
+    });
 };
 
 const renderApplicationsTable = (entries) => {
@@ -393,6 +442,9 @@ const renderApplicationsTable = (entries) => {
         ['Mother Name', 'motherName'],
         ['DOB', 'dob'],
         ['Age', 'age'],
+        ['Move-in Date', 'moveInDate'],
+        ['Move Out Date', 'moveOutDate'],
+        ['Resident Status', 'residentStatus'],
         ['Alternate Number', 'alternateNumber'],
         ['Aadhaar', 'aadhaar'],
         ['Address', 'address'],
@@ -409,8 +461,16 @@ const renderApplicationsTable = (entries) => {
     adminApplicationsTableBody.innerHTML = fieldLabels
         .map(([label, key]) => {
             const cells = entries
-                .map(([_, data]) => {
+                .map(([id, data]) => {
                     const value = data[key] || '-';
+                    if (key === 'moveOutDate') {
+                        const inputValue = value === '-' ? '' : value;
+                        return `<td><input type="date" class="admin-move-out-date" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(inputValue)}" /></td>`;
+                    }
+                    if (key === 'residentStatus') {
+                        const status = getResidentStatus(data);
+                        return `<td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>`;
+                    }
                     // Display all photo fields as image previews
                     if ((key === 'passportPhoto' || key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
                         return `<td><img src="${sanitizeText(value)}" alt="${label}" class="admin-photo-preview" /></td>`;
@@ -421,6 +481,8 @@ const renderApplicationsTable = (entries) => {
             return `<tr><th>${sanitizeText(label)}</th>${cells}</tr>`;
         })
         .join('');
+
+    attachMoveOutDateHandlers();
 };
 
 const renderContactsTable = (entries) => {
