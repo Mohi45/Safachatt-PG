@@ -90,12 +90,21 @@
 
             <div class="container admin-table-container admin-panel reveal" data-panel="applications">
                 <h3>Application Submissions</h3>
-                <div class="admin-table-scroll">
+                <div class="admin-table-scroll admin-table-scroll-top" id="applicationsTableScrollTop">
+                    <div class="admin-table-scroll-spacer"></div>
+                </div>
+                <div class="admin-table-scroll" id="applicationsTableScroll">
                     <table class="admin-table admin-vertical-table">
                         <thead>
                             <tr>
-                                <th>Details</th>
-                                <th id="applicantHeaderContainer"></th>
+                                <th>
+                                    <div class="admin-search-field">
+                                        <label for="studentNameSearch" class="sr-only">Search by student name</label>
+                                        <input id="studentNameSearch" type="text" class="admin-search-input"
+                                            placeholder="Search student name" />
+                                    </div>
+                                </th>
+                                <th id="applicantHeaderContainer"> 🕉️ हर हर महादेव 🕉️ </th>
                             </tr>
                         </thead>
                         <tbody id="applicationsTableBody">

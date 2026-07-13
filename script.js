@@ -134,8 +134,14 @@ const adminUnlockButton = document.getElementById('adminUnlockButton');
 const adminTabButtons = document.querySelectorAll('.admin-tab-button');
 const adminPanels = document.querySelectorAll('.admin-panel');
 const adminLoginButton = document.getElementById('adminLoginButton');
+const adminSearchInput = document.getElementById('studentNameSearch');
+const adminTableScroll = document.getElementById('applicationsTableScroll');
+const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const adminAccessKey = 'safachatt-admin-access';
 const adminPassword = 'Safachatt2026!';
+
+let adminApplicationEntriesCache = [];
+let adminContactEntriesCache = [];
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -420,6 +426,23 @@ const attachMoveOutDateHandlers = () => {
     });
 };
 
+const filterApplicationEntries = (entries, query = '') => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return entries;
+
+    return entries.filter(([, data]) => {
+        const studentName = String(data?.fullName || '').toLowerCase();
+        return studentName.includes(normalizedQuery);
+    });
+};
+
+const handleApplicationSearch = () => {
+    if (!adminSearchInput) return;
+    const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput.value);
+    renderApplicationsTable(filteredEntries);
+    updateAdminTotals(filteredEntries, adminContactEntriesCache);
+};
+
 const renderApplicationsTable = (entries) => {
     if (!adminApplicationsTableBody) return;
     if (!entries.length) {
@@ -427,12 +450,7 @@ const renderApplicationsTable = (entries) => {
         return;
     }
 
-    const applicantHeaderContainer = document.getElementById('applicantHeaderContainer');
-    if (applicantHeaderContainer) {
-        applicantHeaderContainer.innerHTML = entries
-            .map((_, index) => `<th>${index + 1}</th>`)
-            .join('');
-    }
+
 
     const fieldLabels = [
         ['Applicant Name', 'fullName'],
@@ -529,15 +547,31 @@ const loadAdminData = async () => {
         const applicationEntries = Object.entries(appsData).sort(([a], [b]) => Number(a) - Number(b));
         const contactEntries = Object.entries(contactsData).sort(([a], [b]) => Number(a) - Number(b));
 
-        renderApplicationsTable(applicationEntries);
+        adminApplicationEntriesCache = applicationEntries;
+        adminContactEntriesCache = contactEntries;
+        const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
+        renderApplicationsTable(filteredApplicationEntries);
         renderContactsTable(contactEntries);
-        updateAdminTotals(applicationEntries, contactEntries);
+        updateAdminTotals(filteredApplicationEntries, contactEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
         if (adminContactsTableBody) adminContactsTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
+};
+
+const syncAdminTableScroll = () => {
+    if (!adminTableScroll || !adminTableScrollTop) return;
+
+    const table = adminTableScroll.querySelector('table');
+    const spacer = adminTableScrollTop.querySelector('.admin-table-scroll-spacer');
+
+    if (table && spacer) {
+        spacer.style.minWidth = `${table.scrollWidth}px`;
+    }
+
+    adminTableScrollTop.scrollLeft = adminTableScroll.scrollLeft;
 };
 
 const initAdminDashboard = () => {
@@ -567,6 +601,20 @@ const initAdminDashboard = () => {
             button.addEventListener('click', () => toggleAdminPanel(button.dataset.panel));
         });
     }
+
+    if (adminSearchInput) {
+        adminSearchInput.addEventListener('input', handleApplicationSearch);
+    }
+
+    if (adminTableScroll && adminTableScrollTop) {
+        adminTableScroll.addEventListener('scroll', syncAdminTableScroll);
+        adminTableScrollTop.addEventListener('scroll', () => {
+            adminTableScroll.scrollLeft = adminTableScrollTop.scrollLeft;
+        });
+        window.addEventListener('resize', syncAdminTableScroll);
+    }
+
+    syncAdminTableScroll();
 
     if (adminLoginButton) {
         adminLoginButton.addEventListener('click', () => {

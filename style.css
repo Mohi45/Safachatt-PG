@@ -1100,10 +1100,33 @@ p {
 
 .admin-table-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     border-radius: 12px;
     border: 1px solid rgba(199, 125, 255, 0.1);
     background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-table-scroll-top {
+    height: 16px;
+    margin-bottom: 0.35rem;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid rgba(199, 125, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-table-scroll-top .admin-table-scroll-spacer {
+    height: 1px;
+    min-width: 900px;
+}
+
+.admin-table-scroll-top::-webkit-scrollbar {
+    height: 10px;
+}
+
+.admin-table-scroll-top::-webkit-scrollbar-thumb {
+    background: rgba(199, 125, 255, 0.3);
+    border-radius: 999px;
 }
 
 .admin-table {
@@ -1273,6 +1296,42 @@ p {
     gap: 0.3rem;
 }
 
+.admin-search-field {
+    min-width: 220px;
+}
+
+.admin-search-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.admin-search-input::placeholder {
+    color: rgba(19, 18, 18, 0.6);
+}
+
+.admin-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(199, 125, 255, 0.16);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .applicant-column strong,
 .contact-column strong {
     display: block;
@@ -1309,11 +1368,58 @@ p {
 @media (max-width: 880px) {
     .admin-controls {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+
+    .admin-stats {
+        width: 100%;
+        gap: 0.75rem;
+    }
+
+    .admin-stats .stat-card {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .admin-tab-list,
+    .admin-tabs {
+        width: 100%;
+    }
+
+    .admin-tab-button {
+        flex: 1 1 0;
+        text-align: center;
+    }
+
+    .admin-search-field {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .admin-search-input {
+        min-height: 44px;
+    }
+
+    .admin-table-container {
+        padding: 1.25rem;
     }
 
     .admin-table {
         min-width: 100%;
+    }
+
+    .admin-photo-preview {
+        width: min(220px, 100%);
+        height: auto;
+        aspect-ratio: 1 / 1;
+    }
+
+    .admin-passport-preview {
+        width: min(180px, 100%);
+        height: auto;
+        aspect-ratio: 1 / 1;
     }
 
     .details-grid {
@@ -1685,6 +1791,47 @@ p {
     .faq-grid,
     .footer-grid {
         grid-template-columns: 1fr;
+    }
+
+    .admin-controls {
+        padding: 1rem;
+    }
+
+    .admin-table-container {
+        padding: 1rem;
+    }
+
+    .admin-table-container h3 {
+        font-size: 1.25rem;
+    }
+
+    .admin-stats {
+        flex-direction: column;
+    }
+
+    .admin-stats .stat-card {
+        width: 100%;
+    }
+
+    .admin-tab-button {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.9rem;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 0.8rem 0.7rem;
+        font-size: 0.9rem;
+    }
+
+    .admin-vertical-table td:first-child,
+    .admin-vertical-table th:first-child {
+        min-width: 140px;
+    }
+
+    .admin-search-input {
+        padding: 0.8rem 0.95rem;
+        font-size: 0.95rem;
     }
 
     .page-loader {
