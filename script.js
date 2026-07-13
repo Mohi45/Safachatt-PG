@@ -473,7 +473,8 @@ const renderApplicationsTable = (entries) => {
                     }
                     // Display all photo fields as image previews
                     if ((key === 'passportPhoto' || key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
-                        return `<td><img src="${sanitizeText(value)}" alt="${label}" class="admin-photo-preview" /></td>`;
+                        const previewClass = key === 'passportPhoto' ? 'admin-photo-preview admin-passport-preview' : 'admin-photo-preview';
+                        return `<td><img src="${sanitizeText(value)}" alt="${label}" class="${previewClass}" /></td>`;
                     }
                     return `<td>${sanitizeText(value)}</td>`;
                 })

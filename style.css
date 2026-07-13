@@ -1200,6 +1200,12 @@ p {
     border-color: rgba(199, 125, 255, 0.4);
 }
 
+.admin-passport-preview {
+    width: 250px;
+    height: 250px;
+    object-fit: cover;
+}
+
 .admin-status-badge {
     display: inline-flex;
     align-items: center;
