@@ -426,6 +426,71 @@ const attachMoveOutDateHandlers = () => {
     });
 };
 
+const updateApplicantPhotoInFirebase = async (entryId, file) => {
+    if (!firebaseDatabase || !entryId || !file) return false;
+
+    try {
+        const photoUrl = await uploadFileToStorage(file, 'applications');
+        if (!photoUrl) {
+            showToast('Unable to upload the new photo.');
+            return false;
+        }
+
+        await firebaseDatabase.ref(`applications/${entryId}`).update({ passportPhoto: photoUrl });
+
+        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
+        if (matchingEntry) {
+            matchingEntry[1] = { ...matchingEntry[1], passportPhoto: photoUrl };
+        }
+
+        showToast('Passport photo updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating applicant photo:', error);
+        showToast('Unable to update the passport photo.');
+        return false;
+    }
+};
+
+const attachPhotoUploadHandlers = () => {
+    document.querySelectorAll('.admin-photo-upload-input').forEach((input) => {
+        input.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            const entryId = target.dataset.entryId;
+            const file = target.files?.[0];
+
+            if (!entryId || !file) return;
+
+            const uploaded = await updateApplicantPhotoInFirebase(entryId, file);
+            if (uploaded) {
+                const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput?.value || '');
+                renderApplicationsTable(filteredEntries);
+                updateAdminTotals(filteredEntries, adminContactEntriesCache);
+            }
+
+            target.value = '';
+        });
+    });
+};
+
+const renderPassportPhotoCell = (value, entryId, label) => {
+    const previewMarkup = isImageUrl(value) && value !== '-'
+        ? `<img src="${sanitizeText(value)}" alt="${sanitizeText(label)}" class="admin-photo-preview admin-passport-preview" />`
+        : '<div class="admin-photo-fallback">No photo uploaded</div>';
+
+    return `
+        <td>
+            <div class="admin-photo-cell">
+                ${previewMarkup}
+                <label class="admin-photo-upload">
+                    <span>Upload image</span>
+                    <input type="file" accept="image/*" class="admin-photo-upload-input" data-entry-id="${sanitizeText(entryId)}" />
+                </label>
+            </div>
+        </td>
+    `;
+};
+
 const filterApplicationEntries = (entries, query = '') => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return entries;
@@ -489,9 +554,13 @@ const renderApplicationsTable = (entries) => {
                         const status = getResidentStatus(data);
                         return `<td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>`;
                     }
+                    if (key === 'passportPhoto') {
+                        return renderPassportPhotoCell(value, id, label);
+                    }
+
                     // Display all photo fields as image previews
-                    if ((key === 'passportPhoto' || key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
-                        const previewClass = key === 'passportPhoto' ? 'admin-photo-preview admin-passport-preview' : 'admin-photo-preview';
+                    if ((key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
+                        const previewClass = 'admin-photo-preview';
                         return `<td><img src="${sanitizeText(value)}" alt="${label}" class="${previewClass}" /></td>`;
                     }
                     return `<td>${sanitizeText(value)}</td>`;
@@ -502,6 +571,7 @@ const renderApplicationsTable = (entries) => {
         .join('');
 
     attachMoveOutDateHandlers();
+    attachPhotoUploadHandlers();
 };
 
 const renderContactsTable = (entries) => {
