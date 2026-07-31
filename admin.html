@@ -73,6 +73,8 @@
                 <div class="admin-tabs admin-tab-list">
                     <button type="button" class="btn admin-tab-button active"
                         data-panel="applications">Registrations</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
+                        Management</button>
                     <button type="button" class="btn admin-tab-button" data-panel="contacts">Contact Messages</button>
                 </div>
                 <div class="admin-stats">
@@ -110,6 +112,73 @@
                         <tbody id="applicationsTableBody">
                             <tr>
                                 <td colspan="10">Loading application entries…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="rent-due">
+                <div class="rent-header">
+                    <div>
+                        <h3>Rent Due Management</h3>
+                        <p>Track rent status, overdue balances, and send WhatsApp reminders.</p>
+                    </div>
+                    <button id="sendReminderToAll" class="btn btn-primary">Send Reminder to All Pending
+                        Students</button>
+                </div>
+
+                <div class="rent-summary-grid">
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryTotal">0</h4>
+                        <p>Total Students</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryPaid">0</h4>
+                        <p>Paid Students</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryPending">0</h4>
+                        <p>Pending Students</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryTodayDue">0</h4>
+                        <p>Today's Due</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryOverdue">0</h4>
+                        <p>Overdue</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="rentSummaryCollection">0</h4>
+                        <p>Total Amount</p>
+                    </div>
+                </div>
+
+                <div class="rent-filters">
+                    <label class="sr-only" for="rentSearchName">Search by student name</label>
+                    <input id="rentSearchName" type="text" class="admin-search-input"
+                        placeholder="Search by student name" />
+                </div>
+
+                <div class="admin-table-scroll">
+                    <table class="admin-table rent-table">
+                        <thead>
+                            <tr>
+                                <th>Student Photo</th>
+                                <th>Student Name</th>
+                                <th>Mobile Number</th>
+                                <th>Room Number</th>
+                                <th>Rent Due Date</th>
+                                <th>Payment Received</th>
+                                <th>Amount to Pay</th>
+                                <th>WhatsApp Reminder</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rentDueTableBody">
+                            <tr>
+                                <td colspan="9">Loading rent due data…</td>
                             </tr>
                         </tbody>
                     </table>

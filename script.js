@@ -137,6 +137,15 @@ const adminLoginButton = document.getElementById('adminLoginButton');
 const adminSearchInput = document.getElementById('studentNameSearch');
 const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
+const rentSearchNameInput = document.getElementById('rentSearchName');
+const rentDueTableBody = document.getElementById('rentDueTableBody');
+const sendReminderToAllButton = document.getElementById('sendReminderToAll');
+const rentSummaryTotal = document.getElementById('rentSummaryTotal');
+const rentSummaryPaid = document.getElementById('rentSummaryPaid');
+const rentSummaryPending = document.getElementById('rentSummaryPending');
+const rentSummaryTodayDue = document.getElementById('rentSummaryTodayDue');
+const rentSummaryOverdue = document.getElementById('rentSummaryOverdue');
+const rentSummaryCollection = document.getElementById('rentSummaryCollection');
 const adminAccessKey = 'safachatt-admin-access';
 const adminPassword = 'Safachatt2026!';
 
@@ -416,6 +425,271 @@ const updateMoveOutDateInFirebase = async (entryId, value) => {
     }
 };
 
+const toDateOnlyValue = (value) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().split('T')[0];
+};
+
+const parseDateValue = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const formatDateValue = (value) => {
+    const parsed = parseDateValue(value);
+    if (!parsed) return '';
+    const year = parsed.getFullYear();
+    const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
+    const day = `${parsed.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getRecurringDueDate = (data) => {
+    const moveInDate = parseDateValue(data?.moveInDate);
+    const today = new Date();
+    const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    if (!moveInDate) {
+        return parseDateValue(data?.rentDueDate);
+    }
+
+    const dueDay = moveInDate.getDate();
+    const dueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dueDay);
+    if (dueDate.getMonth() !== currentMonth.getMonth()) {
+        dueDate.setDate(0);
+    }
+
+    return dueDate;
+};
+
+const isActiveResident = (data) => {
+    const moveInDate = parseDateValue(data?.moveInDate);
+    if (!moveInDate) return false;
+
+    const moveOutDate = parseDateValue(data?.moveOutDate);
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (moveOutDate && moveOutDate <= todayDate) return false;
+    return true;
+};
+
+const getRentStatus = (data) => {
+    const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
+    const dueDate = getRecurringDueDate(data);
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (paymentReceived) {
+        return { label: 'Paid', className: 'paid' };
+    }
+
+    if (dueDate && dueDate < todayDate) {
+        return { label: 'Overdue', className: 'overdue' };
+    }
+
+    if (dueDate && dueDate.getTime() === todayDate.getTime()) {
+        return { label: 'Due Today', className: 'pending' };
+    }
+
+    return { label: 'Pending', className: 'pending' };
+};
+
+const formatCurrency = (value) => {
+    const amount = Number(value);
+    if (Number.isNaN(amount)) return '₹0';
+    return `₹${amount.toLocaleString('en-IN')}`;
+};
+
+const buildWhatsAppUrl = (phone, message) => {
+    const normalizedPhone = String(phone || '').replace(/\D/g, '');
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/91${normalizedPhone}${normalizedPhone.length > 10 ? '' : ''}?text=${encodedMessage}`;
+};
+
+const getRentReminderMessage = (data) => {
+    const studentName = data?.fullName || 'Student';
+    const rent = data?.monthlyRent || data?.rent || 0;
+    const amountToPay = data?.amountToPay ?? rent;
+    const dueDate = formatDateValue(getRecurringDueDate(data)) || 'Soon';
+    return `Hello ${studentName},\n\nThis is a reminder that your PG rent for this month is still pending.\n\nAmount to Pay: ₹${amountToPay}\nDue Date: ${dueDate}\n\nKindly make the payment as soon as possible.\n\nThank you,\nPG Management`;
+};
+
+const updateRentPaymentInFirebase = async (entryId, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        const paymentReceived = value === 'true';
+        const updates = { paymentReceived };
+
+        await firebaseDatabase.ref(`applications/${entryId}`).update(updates);
+        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
+        if (matchingEntry) {
+            matchingEntry[1] = { ...matchingEntry[1], ...updates };
+        }
+        showToast(paymentReceived ? 'Payment marked as received.' : 'Payment marked as pending.');
+        return true;
+    } catch (error) {
+        console.error('Error updating rent payment status:', error);
+        showToast('Unable to update rent payment status.');
+        return false;
+    }
+};
+
+const updateRentDueDateInFirebase = async (entryId, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        await firebaseDatabase.ref(`applications/${entryId}`).update({ rentDueDate: value || '' });
+        showToast('Rent due date updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating rent due date:', error);
+        showToast('Unable to update rent due date.');
+        return false;
+    }
+};
+
+const updateRentAmountInFirebase = async (entryId, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        const parsedValue = Number(value);
+        const safeValue = Number.isNaN(parsedValue) ? 0 : parsedValue;
+        await firebaseDatabase.ref(`applications/${entryId}`).update({ amountToPay: safeValue });
+        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
+        if (matchingEntry) {
+            matchingEntry[1] = { ...matchingEntry[1], amountToPay: safeValue };
+        }
+        showToast('Amount updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating rent amount:', error);
+        showToast('Unable to update rent amount.');
+        return false;
+    }
+};
+
+const renderRentDueTable = (entries) => {
+    if (!rentDueTableBody) return;
+
+    const activeEntries = entries.filter(([, data]) => isActiveResident(data));
+    if (!activeEntries.length) {
+        rentDueTableBody.innerHTML = '<tr><td colspan="10">No active rent records found.</td></tr>';
+        return;
+    }
+
+    const nameQuery = (rentSearchNameInput?.value || '').trim().toLowerCase();
+
+    const filteredEntries = activeEntries.filter(([, data]) => {
+        const studentName = String(data?.fullName || '').toLowerCase();
+        const status = getRentStatus(data);
+
+        const matchesName = !nameQuery || studentName.includes(nameQuery);
+        return matchesName;
+    });
+
+    const rows = filteredEntries.map(([id, data]) => {
+        const status = getRentStatus(data);
+        const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
+        const dueDate = formatDateValue(getRecurringDueDate(data));
+        const amountToPay = data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0);
+        const photoUrl = data?.passportPhoto;
+        const photoCell = photoUrl && photoUrl !== '-'
+            ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
+            : '<div class="rent-photo-fallback">No photo</div>';
+        const whatsappUrl = buildWhatsAppUrl(data?.mobile, getRentReminderMessage(data));
+
+        return `
+            <tr class="${status.label === 'Overdue' ? 'rent-overdue-row' : ''}">
+                <td>${photoCell}</td>
+                <td>${sanitizeText(data?.fullName || '-')}</td>
+                <td>${sanitizeText(data?.mobile || '-')}</td>
+                <td>${sanitizeText(data?.roomNumber || data?.roomType || '-')}</td>
+                <td>${sanitizeText(dueDate || '-')}</td>
+                <td>
+                    <div class="rent-status-badge ${status.className}">${sanitizeText(status.label)}</div>
+                    <select class="rent-payment-select" data-entry-id="${sanitizeText(id)}">
+                        <option value="false" ${paymentReceived ? '' : 'selected'}>No</option>
+                        <option value="true" ${paymentReceived ? 'selected' : ''}>Yes</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="rent-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(amountToPay)}" min="0" step="1" inputmode="numeric" placeholder="0" />
+                </td>
+                <td>
+                    <a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    rentDueTableBody.innerHTML = rows;
+    document.querySelectorAll('.rent-payment-select').forEach((select) => {
+        select.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            await updateRentPaymentInFirebase(target.dataset.entryId, target.value);
+            renderRentDueTable(adminApplicationEntriesCache);
+            updateRentSummary(adminApplicationEntriesCache);
+        });
+    });
+
+    document.querySelectorAll('.rent-amount-input').forEach((input) => {
+        input.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            await updateRentAmountInFirebase(target.dataset.entryId, target.value);
+            renderRentDueTable(adminApplicationEntriesCache);
+            updateRentSummary(adminApplicationEntriesCache);
+        });
+    });
+};
+
+const updateRentSummary = (entries) => {
+    if (!entries) return;
+    const activeEntries = entries.filter(([, data]) => isActiveResident(data));
+    const total = activeEntries.length;
+    const paid = activeEntries.filter(([, data]) => data?.paymentReceived === true || data?.paymentReceived === 'true').length;
+    const pending = total - paid;
+    const todayDue = activeEntries.filter(([, data]) => {
+        const status = getRentStatus(data);
+        return status.label === 'Due Today';
+    }).length;
+    const overdue = activeEntries.filter(([, data]) => {
+        const status = getRentStatus(data);
+        return status.label === 'Overdue';
+    }).length;
+    const totalAmount = activeEntries.reduce((sum, [, data]) => {
+        const amount = Number(data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0);
+        return sum + (Number.isFinite(amount) ? amount : 0);
+    }, 0);
+
+    if (rentSummaryTotal) rentSummaryTotal.textContent = String(total);
+    if (rentSummaryPaid) rentSummaryPaid.textContent = String(paid);
+    if (rentSummaryPending) rentSummaryPending.textContent = String(pending);
+    if (rentSummaryTodayDue) rentSummaryTodayDue.textContent = String(todayDue);
+    if (rentSummaryOverdue) rentSummaryOverdue.textContent = String(overdue);
+    if (rentSummaryCollection) rentSummaryCollection.textContent = String(totalAmount);
+};
+
+const sendReminderToAllPendingStudents = () => {
+    const pendingEntries = adminApplicationEntriesCache.filter(([, data]) => {
+        const status = getRentStatus(data);
+        return isActiveResident(data) && status.label !== 'Paid';
+    });
+
+    if (!pendingEntries.length) {
+        showToast('No pending students to remind.');
+        return;
+    }
+
+    pendingEntries.forEach(([, data], index) => {
+        const reminderUrl = buildWhatsAppUrl(data?.mobile, getRentReminderMessage(data));
+        setTimeout(() => window.open(reminderUrl, '_blank', 'noopener,noreferrer'), index * 700);
+    });
+    showToast('WhatsApp reminders opened for pending students.');
+};
+
 const attachMoveOutDateHandlers = () => {
     document.querySelectorAll('.admin-move-out-date').forEach((input) => {
         input.addEventListener('change', async (event) => {
@@ -623,6 +897,8 @@ const loadAdminData = async () => {
         renderApplicationsTable(filteredApplicationEntries);
         renderContactsTable(contactEntries);
         updateAdminTotals(filteredApplicationEntries, contactEntries);
+        updateRentSummary(applicationEntries);
+        renderRentDueTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
@@ -674,6 +950,14 @@ const initAdminDashboard = () => {
 
     if (adminSearchInput) {
         adminSearchInput.addEventListener('input', handleApplicationSearch);
+    }
+
+    if (rentSearchNameInput) {
+        rentSearchNameInput.addEventListener('input', () => renderRentDueTable(adminApplicationEntriesCache));
+    }
+
+    if (sendReminderToAllButton) {
+        sendReminderToAllButton.addEventListener('click', sendReminderToAllPendingStudents);
     }
 
     if (adminTableScroll && adminTableScrollTop) {
@@ -764,10 +1048,48 @@ const saveApplicationData = () => {
     localStorage.setItem('bloom-application', JSON.stringify(values));
 };
 
+const normalizeDuplicateValue = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value).toLowerCase().trim().replace(/\s+/g, ' ');
+};
+
+const checkForDuplicateApplication = async (candidateData) => {
+    if (!firebaseDatabase) return false;
+
+    const candidateName = normalizeDuplicateValue(candidateData.fullName);
+    const candidateMobile = normalizeDuplicateValue(String(candidateData.mobile || '').replace(/\D/g, ''));
+    const candidateEmail = normalizeDuplicateValue(candidateData.email);
+
+    if (!candidateName || !candidateMobile || !candidateEmail) {
+        return false;
+    }
+
+    try {
+        const snapshot = await firebaseDatabase.ref('applications').once('value');
+        const applications = snapshot.val() || {};
+
+        return Object.values(applications).some((existingEntry) => {
+            if (!existingEntry) return false;
+
+            const existingName = normalizeDuplicateValue(existingEntry.fullName);
+            const existingMobile = normalizeDuplicateValue(String(existingEntry.mobile || '').replace(/\D/g, ''));
+            const existingEmail = normalizeDuplicateValue(existingEntry.email);
+
+            return existingName && existingMobile && existingEmail
+                && existingName === candidateName
+                && existingMobile === candidateMobile
+                && existingEmail === candidateEmail;
+        });
+    } catch (error) {
+        console.error('Error checking duplicate application:', error);
+        return false;
+    }
+};
+
 const saveFormToFirebase = async (formElement, collectionName) => {
     if (!firebaseDatabase) {
         console.warn('Firebase database not initialized');
-        return false;
+        return { success: false, duplicate: false };
     }
 
     try {
@@ -784,6 +1106,14 @@ const saveFormToFirebase = async (formElement, collectionName) => {
             }
         }
 
+        if (collectionName === 'applications') {
+            const duplicateFound = await checkForDuplicateApplication(processedData);
+            if (duplicateFound) {
+                showToast('A registration with the same name, mobile number, and email already exists.');
+                return { success: false, duplicate: true };
+            }
+        }
+
         const databaseRef = firebaseDatabase.ref(`${collectionName}/${Date.now()}`);
         const dataToSave = {
             ...processedData,
@@ -791,10 +1121,10 @@ const saveFormToFirebase = async (formElement, collectionName) => {
             formVersion: '1.0'
         };
         await databaseRef.set(dataToSave);
-        return true;
+        return { success: true, duplicate: false };
     } catch (error) {
         console.error('Error saving to Firebase:', error);
-        return false;
+        return { success: false, duplicate: false };
     }
 };
 
@@ -844,10 +1174,16 @@ const animateSubmit = async () => {
     if (!applicationForm) return;
     applicationForm.classList.add('loading');
 
-    const savedToFirebase = await saveFormToFirebase(applicationForm, 'applications');
+    const saveResult = await saveFormToFirebase(applicationForm, 'applications');
+    const savedToFirebase = saveResult?.success ?? false;
+    const isDuplicate = saveResult?.duplicate ?? false;
 
     setTimeout(() => {
         applicationForm.classList.remove('loading');
+        if (isDuplicate) {
+            return;
+        }
+
         openModal();
         const message = savedToFirebase
             ? 'Your application has been submitted successfully and saved to database.'
@@ -877,8 +1213,8 @@ const initContactForm = () => {
             return;
         }
 
-        const savedToFirebase = await saveFormToFirebase(contactForm, 'contactMessages');
-        if (savedToFirebase) {
+        const saveResult = await saveFormToFirebase(contactForm, 'contactMessages');
+        if (saveResult?.success) {
             showToast('Message sent and saved successfully. We will reply soon.');
         } else {
             showToast('Message sent, but saving to database failed.');
