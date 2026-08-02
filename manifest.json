@@ -1,0 +1,22 @@
+{
+    "name": "Safachatt PG For Girls",
+    "short_name": "Safachatt PG",
+    "description": "Mobile-friendly access to Safachatt PG rooms, registration, gallery, facilities and contact details.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f4eef7",
+    "theme_color": "#c77dff",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "images/image.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "images/image.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

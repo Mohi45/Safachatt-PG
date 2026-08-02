@@ -37,6 +37,7 @@ html {
 body {
     margin: 0;
     min-height: 100vh;
+    padding-bottom: 6rem;
     font-family: 'Inter', sans-serif;
     color: var(--text);
     background: radial-gradient(circle at top left, rgba(199, 125, 255, 0.18), transparent 28%),
@@ -169,6 +170,74 @@ p {
     display: flex;
     gap: 0.75rem;
     align-items: center;
+}
+
+.mobile-nav {
+    position: fixed;
+    left: 50%;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(199, 125, 255, 0.2);
+    box-shadow: 0 18px 40px rgba(17, 11, 22, 0.16);
+    z-index: 120;
+    backdrop-filter: blur(14px);
+}
+
+.back-btn {
+    position: fixed;
+    left: 1rem;
+    bottom: calc(4.8rem + env(safe-area-inset-bottom));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--text);
+    font-weight: 700;
+    box-shadow: 0 12px 28px rgba(17, 11, 22, 0.12);
+    z-index: 121;
+}
+
+.mobile-nav-link {
+    padding: 0.65rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mobile-nav-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+}
+
+.install-btn {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(4.8rem + env(safe-area-inset-bottom));
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    padding: 0.8rem 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 16px 34px rgba(114, 70, 180, 0.2);
+    z-index: 121;
+}
+
+.install-btn.visible {
+    display: inline-flex;
 }
 
 .icon-btn,
@@ -1358,36 +1427,36 @@ p {
     min-height: 44px;
 }
 
-    .rent-whatsapp-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-        width: 100%;
-        min-width: 140px;
-        padding: 0.75rem 1rem;
-        border-radius: 999px;
-        border: 0;
-        background: linear-gradient(135deg, #25d366, #128c7e);
-        color: #ffffff;
-        font-size: 0.96rem;
-        font-weight: 700;
-        text-decoration: none;
-        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-        box-shadow: 0 12px 24px rgba(37, 211, 102, 0.22);
-    }
+.rent-whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+    min-width: 140px;
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    border: 0;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    color: #ffffff;
+    font-size: 0.96rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    box-shadow: 0 12px 24px rgba(37, 211, 102, 0.22);
+}
 
-    .rent-whatsapp-btn:hover,
-    .rent-whatsapp-btn:focus {
-        background: linear-gradient(135deg, #1ebf59, #0f7a63);
-        transform: translateY(-1px);
-        box-shadow: 0 16px 28px rgba(37, 211, 102, 0.28);
-    }
+.rent-whatsapp-btn:hover,
+.rent-whatsapp-btn:focus {
+    background: linear-gradient(135deg, #1ebf59, #0f7a63);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 28px rgba(37, 211, 102, 0.28);
+}
 
-    .rent-whatsapp-btn::before {
-        content: '💬';
-        font-size: 1rem;
-    }
+.rent-whatsapp-btn::before {
+    content: '💬';
+    font-size: 1rem;
+}
 
 
 .rent-summary-card {
@@ -1874,6 +1943,14 @@ p {
         min-height: 360px;
     }
 
+    .mobile-nav {
+        display: flex;
+    }
+
+    .install-btn {
+        display: inline-flex;
+    }
+
     .testimonial-card {
         padding: 1.6rem;
     }
@@ -1928,6 +2005,17 @@ p {
 @media (max-width: 640px) {
     .hero-section {
         padding-top: 5rem;
+    }
+
+    .mobile-nav {
+        width: calc(100% - 1.2rem);
+        justify-content: space-between;
+    }
+
+    .mobile-nav-link {
+        flex: 1;
+        text-align: center;
+        padding: 0.7rem 0.4rem;
     }
 
     .hero-copy h1 {
@@ -1994,6 +2082,14 @@ p {
 
     .page-loader {
         padding: 1rem;
+    }
+}
+
+@media (min-width: 881px) {
+
+    .mobile-nav,
+    .install-btn {
+        display: none !important;
     }
 }
 

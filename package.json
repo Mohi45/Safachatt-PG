@@ -1,0 +1,10 @@
+{
+    "name": "safachatt-pg-pwa",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Installable PWA for Safachatt PG",
+    "scripts": {
+        "start": "python -m http.server 8000",
+        "serve": "python -m http.server 8000"
+    }
+}

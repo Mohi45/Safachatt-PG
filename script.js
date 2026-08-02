@@ -108,6 +108,9 @@ const saveApplicationToFirebase = async (formData) => {
 const menuToggle = document.getElementById('menuToggle');
 const navMenu = document.querySelector('.nav-menu');
 const themeToggle = document.getElementById('themeToggle');
+let installAppButton = document.getElementById('installAppButton');
+let backButton = document.getElementById('backButton');
+let deferredPrompt = null;
 const typeText = document.getElementById('typeText');
 const backToTop = document.getElementById('backToTop');
 const toast = document.getElementById('toast');
@@ -168,6 +171,111 @@ const showToast = (message) => {
     toast.classList.add('show');
     clearTimeout(toast.hideTimeout);
     toast.hideTimeout = setTimeout(() => toast.classList.remove('show'), 3200);
+};
+
+const registerServiceWorker = async () => {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        await navigator.serviceWorker.register('./sw.js');
+        console.log('Service worker registered');
+    } catch (error) {
+        console.error('Service worker registration failed', error);
+    }
+};
+
+const handleInstallPrompt = () => {
+    if (!deferredPrompt) {
+        showToast('This app is ready to be installed from your browser.');
+        return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+    });
+};
+
+const ensureMobileShell = () => {
+    if (!document.querySelector('.mobile-nav')) {
+        const mobileNav = document.createElement('nav');
+        mobileNav.className = 'mobile-nav';
+        mobileNav.setAttribute('aria-label', 'Bottom navigation');
+        mobileNav.innerHTML = `
+            <a href="index.html" class="mobile-nav-link">Home</a>
+            <a href="rooms.html" class="mobile-nav-link">Rooms</a>
+            <a href="apply.html" class="mobile-nav-link">Apply</a>
+            <a href="contact.html" class="mobile-nav-link">Contact</a>
+        `;
+        document.body.appendChild(mobileNav);
+    }
+
+    if (!document.getElementById('installAppButton')) {
+        const installButton = document.createElement('button');
+        installButton.id = 'installAppButton';
+        installButton.className = 'install-btn';
+        installButton.type = 'button';
+        installButton.textContent = 'Install App';
+        installButton.addEventListener('click', handleInstallPrompt);
+        document.body.appendChild(installButton);
+    }
+
+    if (!document.getElementById('backButton')) {
+        const backButtonElement = document.createElement('button');
+        backButtonElement.id = 'backButton';
+        backButtonElement.className = 'back-btn';
+        backButtonElement.type = 'button';
+        backButtonElement.textContent = '← Back';
+        backButtonElement.addEventListener('click', () => {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+        document.body.appendChild(backButtonElement);
+    }
+
+    installAppButton = document.getElementById('installAppButton');
+    backButton = document.getElementById('backButton');
+
+    document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+        if (link.getAttribute('href') === window.location.pathname.split('/').pop() || link.getAttribute('href') === 'index.html' && (window.location.pathname.endsWith('/') || window.location.pathname.endsWith('index.html'))) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+};
+
+const trackMobileActions = () => {
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(() => {
+            console.log('Location access enabled');
+        }, () => {
+            console.log('Location permission skipped');
+        }, { enableHighAccuracy: false, timeout: 5000 });
+    }
+
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => { });
+    }
+
+    const shareData = {
+        title: 'Safachatt PG',
+        text: 'Explore Safachatt PG rooms, facilities and registration.',
+        url: window.location.href
+    };
+
+    if (navigator.share) {
+        document.querySelectorAll('a[href^="https://wa.me"], .whatsapp-float a').forEach((link) => {
+            link.addEventListener('click', async () => {
+                try {
+                    await navigator.share(shareData);
+                } catch (error) {
+                    console.log('Share dismissed', error);
+                }
+            });
+        });
+    }
 };
 
 const openModal = () => {
@@ -1227,6 +1335,18 @@ const initContactForm = () => {
 if (menuToggle) {
     menuToggle.addEventListener('click', toggleMenu);
 }
+if (installAppButton) {
+    installAppButton.addEventListener('click', handleInstallPrompt);
+}
+if (backButton) {
+    backButton.addEventListener('click', () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+}
 if (navMenu) {
     navMenu.addEventListener('click', smoothScroll);
 }
@@ -1304,8 +1424,11 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+    ensureMobileShell();
     initializeFirebase();
     initAgeCalculation();
+    registerServiceWorker();
+    trackMobileActions();
     loadTheme();
     loadApplicationData();
     startTyping();
@@ -1334,6 +1457,21 @@ window.addEventListener('resize', () => {
     if (window.innerWidth > 880) {
         navMenu?.classList.remove('open');
     }
+});
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    if (installAppButton) {
+        installAppButton.classList.add('visible');
+    }
+});
+
+window.addEventListener('appinstalled', () => {
+    if (installAppButton) {
+        installAppButton.classList.remove('visible');
+    }
+    showToast('Safachatt PG installed successfully.');
 });
 
 let testimonialIndex = 0;
