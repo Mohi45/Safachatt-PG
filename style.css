@@ -1377,6 +1377,33 @@ p {
     display: none;
 }
 
+.admin-control-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.admin-document-link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.admin-table-note {
+    margin: -0.35rem 0 1rem;
+    color: var(--muted);
+}
+
+.receipt-month-group th {
+    padding: 0.7rem 0.9rem;
+    text-align: left;
+    background: rgba(199, 125, 255, 0.14);
+    color: var(--primary);
+    font-size: 1rem;
+}
+
 .admin-passport-preview {
     width: 250px;
     height: 250px;
@@ -1415,7 +1442,9 @@ p {
 }
 
 .rent-payment-select,
-.rent-amount-input {
+.rent-amount-input,
+.security-deposit-received-select,
+.security-deposit-amount-input {
     width: 100%;
     min-width: 110px;
     padding: 0.7rem 0.8rem;
@@ -1459,6 +1488,18 @@ p {
 }
 
 
+.rent-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 1.5rem;
+}
+
+@media (max-width: 1100px) {
+    .rent-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
 .rent-summary-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8));
     border: 1px solid rgba(199, 125, 255, 0.2);
@@ -2097,5 +2138,75 @@ p {
     * {
         animation: none !important;
         transition: none !important;
+    }
+}
+/* Mobile-friendly horizontal admin summary cards */
+@media (max-width: 640px) {
+    .rent-summary-grid {
+        display: flex;
+        gap: 0.75rem;
+        overflow-x: auto;
+        padding: 0.15rem 0.1rem 0.85rem;
+        margin-inline: -0.15rem;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .rent-summary-grid::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .rent-summary-grid::-webkit-scrollbar-thumb {
+        background: rgba(199, 125, 255, 0.35);
+        border-radius: 999px;
+    }
+
+    .rent-summary-card {
+        flex: 0 0 158px;
+        min-height: 94px;
+        padding: 1rem;
+        border-radius: 16px;
+        scroll-snap-align: start;
+    }
+
+    .rent-summary-card h4 {
+        font-size: 1.35rem;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+        word-break: break-word;
+    }
+
+    .rent-summary-card p {
+        font-size: 0.86rem;
+        line-height: 1.25;
+    }
+
+    .admin-controls {
+        gap: 1rem;
+    }
+
+    .admin-stats {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.75rem;
+        padding-bottom: 0.35rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-stats .stat-card {
+        flex: 0 0 150px;
+        width: auto;
+        padding: 1rem;
+        text-align: left;
+    }
+
+    .admin-stats .stat-card h3 {
+        font-size: 1.45rem;
+    }
+
+    .admin-stats .stat-card p {
+        margin-top: 0.35rem;
+        font-size: 0.85rem;
     }
 }

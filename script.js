@@ -127,9 +127,9 @@ const faqButtons = document.querySelectorAll('.faq-question');
 const counters = document.querySelectorAll('.counter');
 const testimonialCards = document.querySelectorAll('.testimonial-card');
 const adminApplicationsTableBody = document.getElementById('applicationsTableBody');
-const adminContactsTableBody = document.getElementById('contactsTableBody');
+const receiptsTableBody = document.getElementById('receiptsTableBody');
 const adminTotalApplications = document.getElementById('adminTotalApplications');
-const adminTotalContacts = document.getElementById('adminTotalContacts');
+const adminTotalReceipts = document.getElementById('adminTotalReceipts');
 const refreshAdminButton = document.getElementById('refreshAdmin');
 const adminLoginOverlay = document.getElementById('adminLoginOverlay');
 const adminPasswordInput = document.getElementById('adminPassword');
@@ -153,7 +153,7 @@ const adminAccessKey = 'safachatt-admin-access';
 const adminPassword = 'Safachatt2026!';
 
 let adminApplicationEntriesCache = [];
-let adminContactEntriesCache = [];
+let adminReceiptEntriesCache = [];
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -407,7 +407,7 @@ const formatSubmittedAt = (value) => {
 
 const isImageUrl = (value) => {
     if (!value || typeof value !== 'string') return false;
-    return value.startsWith('data:image/') || value.startsWith('http') || /\.(jpe?g|png|webp|gif|svg)$/i.test(value);
+    return value.startsWith('data:image/') || /\.(jpe?g|png|webp|gif|svg)(?:[?#]|$)/i.test(value);
 };
 
 const fileToDataUrl = (file) => {
@@ -679,12 +679,37 @@ const updateRentAmountInFirebase = async (entryId, value) => {
     }
 };
 
+const updateSecurityDepositInFirebase = async (entryId, field, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        const updateValue = field === 'securityDepositReceived'
+            ? value === 'true'
+            : (Number.isNaN(Number(value)) ? 0 : Number(value));
+        const updates = { [field]: updateValue };
+
+        await firebaseDatabase.ref(`applications/${entryId}`).update(updates);
+        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
+        if (matchingEntry) {
+            matchingEntry[1] = { ...matchingEntry[1], ...updates };
+        }
+
+        showToast(field === 'securityDepositReceived'
+            ? (updateValue ? 'Security deposit marked as received.' : 'Security deposit marked as pending.')
+            : 'Security deposit amount updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating security deposit:', error);
+        showToast('Unable to update security deposit.');
+        return false;
+    }
+};
+
 const renderRentDueTable = (entries) => {
     if (!rentDueTableBody) return;
 
     const activeEntries = entries.filter(([, data]) => isActiveResident(data));
     if (!activeEntries.length) {
-        rentDueTableBody.innerHTML = '<tr><td colspan="10">No active rent records found.</td></tr>';
+        rentDueTableBody.innerHTML = '<tr><td colspan="11">No active rent records found.</td></tr>';
         return;
     }
 
@@ -703,6 +728,8 @@ const renderRentDueTable = (entries) => {
         const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
         const dueDate = formatDateValue(getRecurringDueDate(data));
         const amountToPay = data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0);
+        const securityDepositReceived = data?.securityDepositReceived === true || data?.securityDepositReceived === 'true';
+        const securityDepositAmount = data?.securityDepositAmount ?? 0;
         const photoUrl = data?.passportPhoto;
         const photoCell = photoUrl && photoUrl !== '-'
             ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
@@ -727,8 +754,18 @@ const renderRentDueTable = (entries) => {
                     <input type="number" class="rent-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(amountToPay)}" min="0" step="1" inputmode="numeric" placeholder="0" />
                 </td>
                 <td>
+                    <select class="security-deposit-received-select" data-entry-id="${sanitizeText(id)}">
+                        <option value="false" ${securityDepositReceived ? '' : 'selected'}>No</option>
+                        <option value="true" ${securityDepositReceived ? 'selected' : ''}>Yes</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="security-deposit-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(securityDepositAmount)}" min="0" step="1" inputmode="numeric" placeholder="0" />
+                </td>
+                <td>
                     <a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a>
                 </td>
+                <td>—</td>
             </tr>
         `;
     }).join('');
@@ -749,6 +786,22 @@ const renderRentDueTable = (entries) => {
             await updateRentAmountInFirebase(target.dataset.entryId, target.value);
             renderRentDueTable(adminApplicationEntriesCache);
             updateRentSummary(adminApplicationEntriesCache);
+        });
+    });
+
+    document.querySelectorAll('.security-deposit-received-select').forEach((select) => {
+        select.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            await updateSecurityDepositInFirebase(target.dataset.entryId, 'securityDepositReceived', target.value);
+            renderRentDueTable(adminApplicationEntriesCache);
+        });
+    });
+
+    document.querySelectorAll('.security-deposit-amount-input').forEach((input) => {
+        input.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            await updateSecurityDepositInFirebase(target.dataset.entryId, 'securityDepositAmount', target.value);
+            renderRentDueTable(adminApplicationEntriesCache);
         });
     });
 };
@@ -808,46 +861,47 @@ const attachMoveOutDateHandlers = () => {
     });
 };
 
-const updateApplicantPhotoInFirebase = async (entryId, file) => {
+const updateApplicantDocumentInFirebase = async (entryId, field, file) => {
     if (!firebaseDatabase || !entryId || !file) return false;
 
     try {
-        const photoUrl = await uploadFileToStorage(file, 'applications');
-        if (!photoUrl) {
-            showToast('Unable to upload the new photo.');
+        const documentUrl = await uploadFileToStorage(file, 'applications');
+        if (!documentUrl) {
+            showToast('Unable to upload the document.');
             return false;
         }
 
-        await firebaseDatabase.ref(`applications/${entryId}`).update({ passportPhoto: photoUrl });
+        await firebaseDatabase.ref(`applications/${entryId}`).update({ [field]: documentUrl });
 
         const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
         if (matchingEntry) {
-            matchingEntry[1] = { ...matchingEntry[1], passportPhoto: photoUrl };
+            matchingEntry[1] = { ...matchingEntry[1], [field]: documentUrl };
         }
 
-        showToast('Passport photo updated.');
+        showToast('Document uploaded successfully.');
         return true;
     } catch (error) {
-        console.error('Error updating applicant photo:', error);
-        showToast('Unable to update the passport photo.');
+        console.error('Error updating applicant document:', error);
+        showToast('Unable to upload the document.');
         return false;
     }
 };
 
-const attachPhotoUploadHandlers = () => {
-    document.querySelectorAll('.admin-photo-upload-input').forEach((input) => {
+const attachDocumentUploadHandlers = () => {
+    document.querySelectorAll('.admin-document-upload-input').forEach((input) => {
         input.addEventListener('change', async (event) => {
             const target = event.currentTarget;
             const entryId = target.dataset.entryId;
+            const field = target.dataset.field;
             const file = target.files?.[0];
 
-            if (!entryId || !file) return;
+            if (!entryId || !field || !file) return;
 
-            const uploaded = await updateApplicantPhotoInFirebase(entryId, file);
+            const uploaded = await updateApplicantDocumentInFirebase(entryId, field, file);
             if (uploaded) {
                 const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput?.value || '');
                 renderApplicationsTable(filteredEntries);
-                updateAdminTotals(filteredEntries, adminContactEntriesCache);
+                updateAdminTotals(filteredEntries, adminReceiptEntriesCache);
             }
 
             target.value = '';
@@ -855,18 +909,20 @@ const attachPhotoUploadHandlers = () => {
     });
 };
 
-const renderPassportPhotoCell = (value, entryId, label) => {
+const renderDocumentCell = (value, entryId, label, field, accept) => {
     const previewMarkup = isImageUrl(value) && value !== '-'
         ? `<img src="${sanitizeText(value)}" alt="${sanitizeText(label)}" class="admin-photo-preview admin-passport-preview" />`
-        : '<div class="admin-photo-fallback">No photo uploaded</div>';
+        : value !== '-'
+            ? `<a href="${sanitizeText(value)}" target="_blank" rel="noreferrer" class="admin-document-link">View uploaded document</a>`
+            : '<div class="admin-photo-fallback">No document uploaded</div>';
 
     return `
         <td>
             <div class="admin-photo-cell">
                 ${previewMarkup}
                 <label class="admin-photo-upload">
-                    <span>Upload image</span>
-                    <input type="file" accept="image/*" class="admin-photo-upload-input" data-entry-id="${sanitizeText(entryId)}" />
+                    <span>${value === '-' ? 'Upload document' : 'Replace document'}</span>
+                    <input type="file" accept="${sanitizeText(accept)}" class="admin-document-upload-input" data-entry-id="${sanitizeText(entryId)}" data-field="${sanitizeText(field)}" />
                 </label>
             </div>
         </td>
@@ -887,7 +943,7 @@ const handleApplicationSearch = () => {
     if (!adminSearchInput) return;
     const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput.value);
     renderApplicationsTable(filteredEntries);
-    updateAdminTotals(filteredEntries, adminContactEntriesCache);
+    updateAdminTotals(filteredEntries, adminReceiptEntriesCache);
 };
 
 const renderApplicationsTable = (entries) => {
@@ -937,13 +993,10 @@ const renderApplicationsTable = (entries) => {
                         return `<td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>`;
                     }
                     if (key === 'passportPhoto') {
-                        return renderPassportPhotoCell(value, id, label);
+                        return renderDocumentCell(value, id, label, key, 'image/*');
                     }
-
-                    // Display all photo fields as image previews
-                    if ((key === 'aadhaarUpload' || key === 'idCardUpload') && isImageUrl(value)) {
-                        const previewClass = 'admin-photo-preview';
-                        return `<td><img src="${sanitizeText(value)}" alt="${label}" class="${previewClass}" /></td>`;
+                    if (key === 'aadhaarUpload' || key === 'idCardUpload') {
+                        return renderDocumentCell(value, id, label, key, 'image/*,application/pdf');
                     }
                     return `<td>${sanitizeText(value)}</td>`;
                 })
@@ -953,33 +1006,43 @@ const renderApplicationsTable = (entries) => {
         .join('');
 
     attachMoveOutDateHandlers();
-    attachPhotoUploadHandlers();
+    attachDocumentUploadHandlers();
+};
+const getReceiptMonthLabel = (data) => {
+    const date = parseDateValue(data?.paymentDate || data?.receiptDate || data?.createdAt);
+    return date ? date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'Date not available';
 };
 
-const renderContactsTable = (entries) => {
-    if (!adminContactsTableBody) return;
+const renderReceiptsTable = (entries) => {
+    if (!receiptsTableBody) return;
     if (!entries.length) {
-        adminContactsTableBody.innerHTML = '<tr><td colspan="3">No contact messages found.</td></tr>';
+        receiptsTableBody.innerHTML = '<tr><td colspan="9">No payment receipts found.</td></tr>';
         return;
     }
-    adminContactsTableBody.innerHTML = entries.map(([id, data]) => `
-        <tr>
-            <td>
-                <div class="contact-column">
-                    <strong>${sanitizeText(data.contactName)}</strong>
-                    <div>${sanitizeText(data.contactPhone)}</div>
-                    <div class="applicant-meta">${sanitizeText(data.contactEmail)}</div>
-                </div>
-            </td>
-            <td>${sanitizeText(data.contactMessage)}</td>
-            <td>${formatSubmittedAt(data.submittedAt)}</td>
-        </tr>
-    `).join('');
+    let currentMonth = '';
+    receiptsTableBody.innerHTML = entries.map(([id, data]) => {
+        const month = getReceiptMonthLabel(data);
+        const monthRow = month === currentMonth ? '' : `<tr class="receipt-month-group"><th colspan="9">${sanitizeText(month)}</th></tr>`;
+        currentMonth = month;
+        const paymentFor = Array.isArray(data.paymentFor) ? data.paymentFor.join(', ') : data.paymentFor;
+        const total = Number(data.totalAmount ?? ((Number(data.pgRent) || 0) + (Number(data.securityFee) || 0) + (Number(data.lateFee) || 0)));
+        return `${monthRow}<tr>
+            <td>${sanitizeText(data.receiptNo || '-')}</td>
+            <td>${sanitizeText(data.tenantName || '-')}</td>
+            <td>${sanitizeText(data.roomBed || '-')}</td>
+            <td>${sanitizeText(paymentFor || '-')}</td>
+            <td>${sanitizeText(data.paymentMethod || '-')}</td>
+            <td><span class="admin-status-badge ${data.paymentStatus === 'PAID' ? 'paid' : 'pending'}">${sanitizeText(data.paymentStatus || 'PENDING')}</span></td>
+            <td>${formatCurrency(total)}</td>
+            <td>${sanitizeText(formatDateValue(data.paymentDate || data.receiptDate) || '-')}</td>
+            <td>${sanitizeText(data.receivedBy || '-')}</td>
+        </tr>`;
+    }).join('');
 };
 
-const updateAdminTotals = (apps, contacts) => {
+const updateAdminTotals = (apps, receipts) => {
     if (adminTotalApplications) adminTotalApplications.textContent = String(apps.length);
-    if (adminTotalContacts) adminTotalContacts.textContent = String(contacts.length);
+    if (adminTotalReceipts) adminTotalReceipts.textContent = String(receipts.length);
 };
 
 const loadAdminData = async () => {
@@ -989,28 +1052,32 @@ const loadAdminData = async () => {
     }
 
     try {
-        const [appsSnapshot, contactsSnapshot] = await Promise.all([
+        const [appsSnapshot, receiptsSnapshot] = await Promise.all([
             firebaseDatabase.ref('applications').orderByKey().once('value'),
-            firebaseDatabase.ref('contactMessages').orderByKey().once('value')
+            firebaseDatabase.ref('receipts').orderByKey().once('value')
         ]);
 
         const appsData = appsSnapshot.val() || {};
-        const contactsData = contactsSnapshot.val() || {};
+        const receiptsData = receiptsSnapshot.val() || {};
         const applicationEntries = Object.entries(appsData).sort(([a], [b]) => Number(a) - Number(b));
-        const contactEntries = Object.entries(contactsData).sort(([a], [b]) => Number(a) - Number(b));
+        const receiptEntries = Object.entries(receiptsData).sort(([, a], [, b]) => {
+            const aDate = new Date(a?.paymentDate || a?.receiptDate || a?.createdAt || 0).getTime();
+            const bDate = new Date(b?.paymentDate || b?.receiptDate || b?.createdAt || 0).getTime();
+            return bDate - aDate;
+        });
 
         adminApplicationEntriesCache = applicationEntries;
-        adminContactEntriesCache = contactEntries;
+        adminReceiptEntriesCache = receiptEntries;
         const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
         renderApplicationsTable(filteredApplicationEntries);
-        renderContactsTable(contactEntries);
-        updateAdminTotals(filteredApplicationEntries, contactEntries);
+        renderReceiptsTable(receiptEntries);
+        updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
-        if (adminContactsTableBody) adminContactsTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
+        if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
 };
@@ -1029,7 +1096,7 @@ const syncAdminTableScroll = () => {
 };
 
 const initAdminDashboard = () => {
-    if (!adminApplicationsTableBody && !adminContactsTableBody && !adminLoginOverlay) return;
+    if (!adminApplicationsTableBody && !receiptsTableBody && !adminLoginOverlay) return;
     checkAdminAccess();
     if (refreshAdminButton) {
         refreshAdminButton.addEventListener('click', () => {

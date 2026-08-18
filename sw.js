@@ -1,9 +1,10 @@
-const CACHE_NAME = 'safachatt-pg-v1';
+const CACHE_NAME = 'safachatt-pg-v5';
 const APP_SHELL = [
     './',
     './index.html',
     './about.html',
     './admin.html',
+    './receipt-generator.html',
     './apply.html',
     './contact.html',
     './facilities.html',
@@ -14,6 +15,7 @@ const APP_SHELL = [
     './style.css',
     './script.js',
     './image.png',
+    './images/tenant-signature.png',
     './manifest.json'
 ];
 

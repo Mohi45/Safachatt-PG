@@ -70,8 +70,8 @@
         <section class="section page-section">
             <div class="container section-heading reveal">
                 <span class="section-label">Admin Dashboard</span>
-                <h2>Review registrations and contact requests</h2>
-                <p>All application submissions and contact messages are shown here in one place.</p>
+                <h2>Review registrations, rent, and payment receipts</h2>
+                <p>All application submissions, rent records, and receipts are shown here in one place.</p>
             </div>
             <div class="container admin-controls reveal">
                 <div class="admin-tabs admin-tab-list">
@@ -79,7 +79,7 @@
                         data-panel="applications">Registrations</button>
                     <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
                         Management</button>
-                    <button type="button" class="btn admin-tab-button" data-panel="contacts">Contact Messages</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
                 </div>
                 <div class="admin-stats">
                     <div class="stat-card">
@@ -87,11 +87,14 @@
                         <p>Registrations</p>
                     </div>
                     <div class="stat-card">
-                        <h3 id="adminTotalContacts">0</h3>
-                        <p>Contact messages</p>
+                        <h3 id="adminTotalReceipts">0</h3>
+                        <p>Payment receipts</p>
                     </div>
                 </div>
-                <button id="refreshAdmin" class="btn btn-secondary">Refresh Data</button>
+                <div class="admin-control-actions">
+                    <a href="receipt-generator.html" class="btn btn-primary">Receipt Generator</a>
+                    <button id="refreshAdmin" class="btn btn-secondary">Refresh Data</button>
+                </div>
             </div>
 
             <div class="container admin-table-container admin-panel reveal" data-panel="applications">
@@ -176,35 +179,46 @@
                                 <th>Rent Due Date</th>
                                 <th>Payment Received</th>
                                 <th>Amount to Pay</th>
+                                <th>Security Deposit Received</th>
+                                <th>Security Deposit Amount</th>
                                 <th>WhatsApp Reminder</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="rentDueTableBody">
                             <tr>
-                                <td colspan="9">Loading rent due data…</td>
+                                <td colspan="11">Loading rent due data…</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="container admin-table-container admin-panel hidden reveal" data-panel="contacts">
-                <h3>Contact Messages</h3>
-                <table class="admin-table">
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="receipts">
+                <h3>Payment Receipts</h3>
+                <p class="admin-table-note">Receipts are grouped by the payment month.</p>
+                <div class="admin-table-scroll">
+                <table class="admin-table receipt-history-table">
                     <thead>
                         <tr>
-                            <th>Contact</th>
-                            <th>Message</th>
-                            <th>Submitted</th>
+                            <th>Receipt No.</th>
+                            <th>Tenant</th>
+                            <th>Room / Bed</th>
+                            <th>Payment For</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Total Amount</th>
+                            <th>Payment Date</th>
+                            <th>Received By</th>
                         </tr>
                     </thead>
-                    <tbody id="contactsTableBody">
+                    <tbody id="receiptsTableBody">
                         <tr>
-                            <td colspan="3">Loading contact messages…</td>
+                            <td colspan="9">Loading payment receipts…</td>
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </section>
     </main>
@@ -253,7 +267,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
-    <script src="script.js?v=afdd358"></script>
+    <script src="script.js?v=payment-receipts-table"></script>
 </body>
 
 </html>
