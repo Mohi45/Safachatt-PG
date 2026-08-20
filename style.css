@@ -1396,6 +1396,10 @@ p {
     color: var(--muted);
 }
 
+.receipt-search-field {
+    margin: 0 0 1rem;
+}
+
 .receipt-month-group th {
     padding: 0.7rem 0.9rem;
     text-align: left;

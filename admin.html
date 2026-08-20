@@ -197,6 +197,11 @@
             <div class="container admin-table-container admin-panel hidden reveal" data-panel="receipts">
                 <h3>Payment Receipts</h3>
                 <p class="admin-table-note">Receipts are grouped by the payment month.</p>
+                <div class="admin-search-field receipt-search-field">
+                    <label for="receiptSearch" class="sr-only">Search payment receipts by tenant name or receipt number</label>
+                    <input id="receiptSearch" type="search" class="admin-search-input"
+                        placeholder="Search by name or receipt number" autocomplete="off" />
+                </div>
                 <div class="admin-table-scroll">
                 <table class="admin-table receipt-history-table">
                     <thead>

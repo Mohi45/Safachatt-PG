@@ -138,6 +138,7 @@ const adminTabButtons = document.querySelectorAll('.admin-tab-button');
 const adminPanels = document.querySelectorAll('.admin-panel');
 const adminLoginButton = document.getElementById('adminLoginButton');
 const adminSearchInput = document.getElementById('studentNameSearch');
+const receiptSearchInput = document.getElementById('receiptSearch');
 const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const rentSearchNameInput = document.getElementById('rentSearchName');
@@ -1013,6 +1014,15 @@ const getReceiptMonthLabel = (data) => {
     return date ? date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'Date not available';
 };
 
+const filterReceiptEntries = (entries, searchTerm) => {
+    const query = String(searchTerm || '').trim().toLowerCase();
+    if (!query) return entries;
+    return entries.filter(([, data]) =>
+        String(data?.tenantName || '').toLowerCase().includes(query) ||
+        String(data?.receiptNo || '').toLowerCase().includes(query)
+    );
+};
+
 const renderReceiptsTable = (entries) => {
     if (!receiptsTableBody) return;
     if (!entries.length) {
@@ -1070,7 +1080,7 @@ const loadAdminData = async () => {
         adminReceiptEntriesCache = receiptEntries;
         const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
         renderApplicationsTable(filteredApplicationEntries);
-        renderReceiptsTable(receiptEntries);
+        renderReceiptsTable(filterReceiptEntries(receiptEntries, receiptSearchInput?.value));
         updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
@@ -1125,6 +1135,12 @@ const initAdminDashboard = () => {
 
     if (adminSearchInput) {
         adminSearchInput.addEventListener('input', handleApplicationSearch);
+    }
+
+    if (receiptSearchInput) {
+        receiptSearchInput.addEventListener('input', () => {
+            renderReceiptsTable(filterReceiptEntries(adminReceiptEntriesCache, receiptSearchInput.value));
+        });
     }
 
     if (rentSearchNameInput) {
