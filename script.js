@@ -1069,7 +1069,12 @@ const loadAdminData = async () => {
 
         const appsData = appsSnapshot.val() || {};
         const receiptsData = receiptsSnapshot.val() || {};
-        const applicationEntries = Object.entries(appsData).sort(([a], [b]) => Number(a) - Number(b));
+        const applicationEntries = Object.entries(appsData).sort(([a, aData], [b, bData]) => {
+            const aIsActive = getResidentStatus(aData).label === 'Active';
+            const bIsActive = getResidentStatus(bData).label === 'Active';
+            if (aIsActive !== bIsActive) return aIsActive ? -1 : 1;
+            return Number(a) - Number(b);
+        });
         const receiptEntries = Object.entries(receiptsData).sort(([, a], [, b]) => {
             const aDate = new Date(a?.paymentDate || a?.receiptDate || a?.createdAt || 0).getTime();
             const bDate = new Date(b?.paymentDate || b?.receiptDate || b?.createdAt || 0).getTime();
