@@ -81,7 +81,6 @@
                         data-panel="applications">Registrations</button>
                     <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
                         Management</button>
-                    <button type="button" class="btn admin-tab-button" data-panel="joining-dates">Joining Dates</button>
                     <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
                 </div>
                 <div class="admin-stats">
@@ -178,19 +177,15 @@
                                 <th>Student Photo</th>
                                 <th>Student Name</th>
                                 <th>Mobile Number</th>
-                                <th>Room Number</th>
                                 <th>Rent Due Date</th>
                                 <th>Payment Received</th>
                                 <th>Amount to Pay</th>
-                                <th>Security Deposit Received</th>
-                                <th>Security Deposit Amount</th>
                                 <th>WhatsApp Reminder</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="rentDueTableBody">
                             <tr>
-                                <td colspan="11">Loading rent due data…</td>
+                                <td colspan="7">Loading rent due data…</td>
                             </tr>
                         </tbody>
                     </table>
@@ -230,40 +225,6 @@
                 </div>
             </div>
 
-            <div class="container admin-table-container admin-panel hidden reveal" data-panel="joining-dates">
-                <div class="rent-header">
-                    <div>
-                        <h3>Joining Dates</h3>
-                        <p>View joining dates and the automatically updated monthly rent due date.</p>
-                    </div>
-                </div>
-                <div class="rent-filters">
-                    <label class="sr-only" for="joiningDateSearch">Search by student name</label>
-                    <input id="joiningDateSearch" type="text" class="admin-search-input"
-                        placeholder="Search by student name" />
-                </div>
-                <div class="admin-table-scroll">
-                    <table class="admin-table joining-dates-table">
-                        <thead>
-                            <tr>
-                                <th>Student Photo</th>
-                                <th>Student Name</th>
-                                <th>Mobile Number</th>
-                                <th>Joining Date</th>
-                                <th>Monthly Rent</th>
-                                <th>This Month's Due Date</th>
-                                <th>Status</th>
-                                <th>WhatsApp Reminder</th>
-                            </tr>
-                        </thead>
-                        <tbody id="joiningDatesTableBody">
-                            <tr>
-                                <td colspan="8">Loading joining date data…</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </section>
     </main>
     <footer class="site-footer reveal">

@@ -153,8 +153,6 @@ const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const rentSearchNameInput = document.getElementById('rentSearchName');
 const rentDueTableBody = document.getElementById('rentDueTableBody');
-const joiningDatesTableBody = document.getElementById('joiningDatesTableBody');
-const joiningDateSearchInput = document.getElementById('joiningDateSearch');
 const sendReminderToAllButton = document.getElementById('sendReminderToAll');
 const rentSummaryTotal = document.getElementById('rentSummaryTotal');
 const rentSummaryPaid = document.getElementById('rentSummaryPaid');
@@ -694,37 +692,12 @@ const updateRentAmountInFirebase = async (entryId, value) => {
     }
 };
 
-const updateSecurityDepositInFirebase = async (entryId, field, value) => {
-    if (!firebaseDatabase || !entryId) return false;
-    try {
-        const updateValue = field === 'securityDepositReceived'
-            ? value === 'true'
-            : (Number.isNaN(Number(value)) ? 0 : Number(value));
-        const updates = { [field]: updateValue };
-
-        await firebaseDatabase.ref(`applications/${entryId}`).update(updates);
-        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
-        if (matchingEntry) {
-            matchingEntry[1] = { ...matchingEntry[1], ...updates };
-        }
-
-        showToast(field === 'securityDepositReceived'
-            ? (updateValue ? 'Security deposit marked as received.' : 'Security deposit marked as pending.')
-            : 'Security deposit amount updated.');
-        return true;
-    } catch (error) {
-        console.error('Error updating security deposit:', error);
-        showToast('Unable to update security deposit.');
-        return false;
-    }
-};
-
 const renderRentDueTable = (entries) => {
     if (!rentDueTableBody) return;
 
     const activeEntries = entries.filter(([, data]) => isActiveResident(data));
     if (!activeEntries.length) {
-        rentDueTableBody.innerHTML = '<tr><td colspan="11">No active rent records found.</td></tr>';
+        rentDueTableBody.innerHTML = '<tr><td colspan="7">No active rent records found.</td></tr>';
         return;
     }
 
@@ -743,8 +716,6 @@ const renderRentDueTable = (entries) => {
         const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
         const dueDate = formatDateValue(getRecurringDueDate(data));
         const amountToPay = data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0);
-        const securityDepositReceived = data?.securityDepositReceived === true || data?.securityDepositReceived === 'true';
-        const securityDepositAmount = data?.securityDepositAmount ?? 0;
         const photoUrl = data?.passportPhoto;
         const photoCell = photoUrl && photoUrl !== '-'
             ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
@@ -756,7 +727,6 @@ const renderRentDueTable = (entries) => {
                 <td>${photoCell}</td>
                 <td>${sanitizeText(data?.fullName || '-')}</td>
                 <td>${sanitizeText(data?.mobile || '-')}</td>
-                <td>${sanitizeText(data?.roomNumber || data?.roomType || '-')}</td>
                 <td>${sanitizeText(dueDate || '-')}</td>
                 <td>
                     <div class="rent-status-badge ${status.className}">${sanitizeText(status.label)}</div>
@@ -769,18 +739,8 @@ const renderRentDueTable = (entries) => {
                     <input type="number" class="rent-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(amountToPay)}" min="0" step="1" inputmode="numeric" placeholder="0" />
                 </td>
                 <td>
-                    <select class="security-deposit-received-select" data-entry-id="${sanitizeText(id)}">
-                        <option value="false" ${securityDepositReceived ? '' : 'selected'}>No</option>
-                        <option value="true" ${securityDepositReceived ? 'selected' : ''}>Yes</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="number" class="security-deposit-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(securityDepositAmount)}" min="0" step="1" inputmode="numeric" placeholder="0" />
-                </td>
-                <td>
                     <a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a>
                 </td>
-                <td>—</td>
             </tr>
         `;
     }).join('');
@@ -804,21 +764,6 @@ const renderRentDueTable = (entries) => {
         });
     });
 
-    document.querySelectorAll('.security-deposit-received-select').forEach((select) => {
-        select.addEventListener('change', async (event) => {
-            const target = event.currentTarget;
-            await updateSecurityDepositInFirebase(target.dataset.entryId, 'securityDepositReceived', target.value);
-            renderRentDueTable(adminApplicationEntriesCache);
-        });
-    });
-
-    document.querySelectorAll('.security-deposit-amount-input').forEach((input) => {
-        input.addEventListener('change', async (event) => {
-            const target = event.currentTarget;
-            await updateSecurityDepositInFirebase(target.dataset.entryId, 'securityDepositAmount', target.value);
-            renderRentDueTable(adminApplicationEntriesCache);
-        });
-    });
 };
 
 const updateRentSummary = (entries) => {
@@ -864,40 +809,6 @@ const sendReminderToAllPendingStudents = () => {
         setTimeout(() => window.open(reminderUrl, '_blank', 'noopener,noreferrer'), index * 700);
     });
     showToast('WhatsApp reminders opened for pending students.');
-};
-
-const renderJoiningDatesTable = (entries) => {
-    if (!joiningDatesTableBody) return;
-
-    const nameQuery = (joiningDateSearchInput?.value || '').trim().toLowerCase();
-    const activeEntries = entries.filter(([, data]) => isActiveResident(data)).filter(([, data]) =>
-        String(data?.fullName || '').toLowerCase().includes(nameQuery));
-
-    if (!activeEntries.length) {
-        joiningDatesTableBody.innerHTML = '<tr><td colspan="8">No active joining date records found.</td></tr>';
-        return;
-    }
-
-    joiningDatesTableBody.innerHTML = activeEntries.map(([id, data]) => {
-        const status = getRentStatus(data);
-        const photoUrl = data?.passportPhoto;
-        const photoCell = photoUrl && photoUrl !== '-'
-            ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
-            : '<div class="rent-photo-fallback">No photo</div>';
-        const amount = data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0;
-        const whatsappUrl = buildWhatsAppUrl(data?.mobile, getRentReminderMessage(data));
-
-        return `<tr class="${status.label === 'Overdue' ? 'rent-overdue-row' : ''}">
-            <td>${photoCell}</td>
-            <td>${sanitizeText(data?.fullName || '-')}</td>
-            <td>${sanitizeText(data?.mobile || '-')}</td>
-            <td>${sanitizeText(formatDateValue(data?.moveInDate) || '-')}</td>
-            <td>${formatCurrency(amount)}</td>
-            <td>${sanitizeText(formatDateValue(getRecurringDueDate(data)) || '-')}</td>
-            <td><span class="rent-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>
-            <td><a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a></td>
-        </tr>`;
-    }).join('');
 };
 
 const attachMoveOutDateHandlers = () => {
@@ -1137,7 +1048,6 @@ const loadAdminData = async () => {
         updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
-        renderJoiningDatesTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
@@ -1201,9 +1111,6 @@ const initAdminDashboard = () => {
         rentSearchNameInput.addEventListener('input', () => renderRentDueTable(adminApplicationEntriesCache));
     }
 
-    if (joiningDateSearchInput) {
-        joiningDateSearchInput.addEventListener('input', () => renderJoiningDatesTable(adminApplicationEntriesCache));
-    }
 
     if (sendReminderToAllButton) {
         sendReminderToAllButton.addEventListener('click', sendReminderToAllPendingStudents);
@@ -1346,12 +1253,6 @@ const saveFormToFirebase = async (formElement, collectionName) => {
             } else {
                 processedData[key] = value;
             }
-        }
-
-        await firebaseAuthReady;
-        if (!firebaseAuth?.currentUser) {
-            showToast('Unable to connect securely. Please reload and try again.');
-            return { success: false, duplicate: false };
         }
 
         const databaseRef = firebaseDatabase.ref(`${collectionName}/${Date.now()}`);

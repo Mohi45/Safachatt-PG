@@ -3,7 +3,7 @@
         "applications": {
             ".read": "auth != null && auth.token.admin === true",
             "$applicationId": {
-                ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
+                ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
                 ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age', 'mobile']) && newData.child('fullName').isString() && newData.child('email').isString() && newData.child('mobile').isString()"
             }
         },
@@ -17,8 +17,8 @@
         "contactMessages": {
             ".read": "auth != null && auth.token.admin === true",
             "$messageId": {
-                ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
-                ".validate": "newData.hasChildren(['name', 'email', 'message']) && newData.child('name').isString() && newData.child('email').isString() && newData.child('message').isString()"
+                ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
+                ".validate": "newData.hasChildren(['contactName', 'contactEmail', 'contactPhone', 'contactMessage']) && newData.child('contactName').isString() && newData.child('contactEmail').isString() && newData.child('contactPhone').isString() && newData.child('contactMessage').isString()"
             }
         }
     }

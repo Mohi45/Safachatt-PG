@@ -105,7 +105,7 @@ For production, use these rules to restrict access:
     "applications": {
       ".read": "auth != null && auth.token.admin === true",
       "$applicationId": {
-        ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
         ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age', 'mobile']) && newData.child('fullName').isString() && newData.child('email').isString() && newData.child('mobile').isString()"
       }
     },
@@ -119,15 +119,15 @@ For production, use these rules to restrict access:
     "contactMessages": {
       ".read": "auth != null && auth.token.admin === true",
       "$messageId": {
-        ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
-        ".validate": "newData.hasChildren(['name', 'email', 'message']) && newData.child('name').isString() && newData.child('email').isString() && newData.child('message').isString()"
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
+        ".validate": "newData.hasChildren(['contactName', 'contactEmail', 'contactPhone', 'contactMessage']) && newData.child('contactName').isString() && newData.child('contactEmail').isString() && newData.child('contactPhone').isString() && newData.child('contactMessage').isString()"
       }
     }
   }
 }
 ```
 
-These rules allow anonymous visitors to submit a new application, but prevent them from reading applications or writing receipts. Only an admin account with the custom claim can read or manage either collection.
+These rules allow visitors to create a new application or contact message without signing in, but prevent them from reading, editing, or deleting data. Only an admin account with the custom claim can read or manage the collections. Anonymous Authentication is optional with these rules.
 
 ## Step 6: Verify the Database URL
 
