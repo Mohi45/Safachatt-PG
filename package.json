@@ -5,6 +5,10 @@
     "description": "Installable PWA for Safachatt PG",
     "scripts": {
         "start": "python -m http.server 8000",
-        "serve": "python -m http.server 8000"
+        "serve": "python -m http.server 8000",
+        "set-admin": "node set-admin.js"
+    },
+    "dependencies": {
+        "firebase-admin": "^13.0.0"
     }
 }

@@ -2,6 +2,8 @@
 // Replace with your Firebase project credentials
 let firebaseApp;
 let firebaseDatabase;
+let firebaseAuth;
+let firebaseAuthReady = Promise.resolve();
 
 const initializeFirebase = () => {
     try {
@@ -21,11 +23,18 @@ const initializeFirebase = () => {
             if (!firebase.apps.length) {
                 firebaseApp = firebase.initializeApp(firebaseConfig);
                 firebaseDatabase = firebase.database();
+                firebaseAuth = typeof firebase.auth === 'function' ? firebase.auth() : null;
                 console.log('✅ Firebase initialized successfully');
                 console.log('Database URL:', firebaseConfig.databaseURL);
             } else {
                 firebaseDatabase = firebase.database();
+                firebaseAuth = typeof firebase.auth === 'function' ? firebase.auth() : null;
                 console.log('✅ Firebase already initialized');
+            }
+            if (firebaseAuth && !document.getElementById('adminLoginOverlay')) {
+                firebaseAuthReady = firebaseAuth.signInAnonymously().catch((error) => {
+                    console.error('Anonymous Firebase sign-in failed:', error);
+                });
             }
         } else {
             console.error('❌ Firebase SDK not loaded. Make sure you are using http:// or https://, not file://');
@@ -132,6 +141,7 @@ const adminTotalApplications = document.getElementById('adminTotalApplications')
 const adminTotalReceipts = document.getElementById('adminTotalReceipts');
 const refreshAdminButton = document.getElementById('refreshAdmin');
 const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+const adminEmailInput = document.getElementById('adminEmail');
 const adminPasswordInput = document.getElementById('adminPassword');
 const adminUnlockButton = document.getElementById('adminUnlockButton');
 const adminTabButtons = document.querySelectorAll('.admin-tab-button');
@@ -143,6 +153,8 @@ const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const rentSearchNameInput = document.getElementById('rentSearchName');
 const rentDueTableBody = document.getElementById('rentDueTableBody');
+const joiningDatesTableBody = document.getElementById('joiningDatesTableBody');
+const joiningDateSearchInput = document.getElementById('joiningDateSearch');
 const sendReminderToAllButton = document.getElementById('sendReminderToAll');
 const rentSummaryTotal = document.getElementById('rentSummaryTotal');
 const rentSummaryPaid = document.getElementById('rentSummaryPaid');
@@ -151,7 +163,6 @@ const rentSummaryTodayDue = document.getElementById('rentSummaryTodayDue');
 const rentSummaryOverdue = document.getElementById('rentSummaryOverdue');
 const rentSummaryCollection = document.getElementById('rentSummaryCollection');
 const adminAccessKey = 'safachatt-admin-access';
-const adminPassword = 'Safachatt2026!';
 
 let adminApplicationEntriesCache = [];
 let adminReceiptEntriesCache = [];
@@ -457,22 +468,25 @@ const getResidentStatus = (data) => {
     return { label: 'Pending', className: 'pending' };
 };
 
-const unlockAdminAccess = () => {
-    const entered = adminPasswordInput?.value ?? '';
-    if (entered === adminPassword) {
+const unlockAdminAccess = async () => {
+    const email = adminEmailInput?.value.trim() ?? '';
+    const password = adminPasswordInput?.value ?? '';
+    if (!firebaseAuth || !email || !password) {
+        showToast('Enter your Firebase admin email and password.');
+        return;
+    }
+
+    try {
+        await firebaseAuth.signInWithEmailAndPassword(email, password);
         adminLoginOverlay?.classList.add('hidden');
         document.body.classList.remove('admin-login-hidden');
         loadAdminData();
         showToast('Admin access granted.');
-        if (adminPasswordInput) {
-            adminPasswordInput.value = '';
-        }
-    } else {
-        showToast('Incorrect password. Please try again.');
-        if (adminPasswordInput) {
-            adminPasswordInput.value = '';
-            adminPasswordInput.focus();
-        }
+        if (adminPasswordInput) adminPasswordInput.value = '';
+    } catch (error) {
+        console.error('Firebase admin sign-in failed:', error);
+        showToast('Admin sign-in failed. Check your email and password.');
+        adminPasswordInput?.focus();
     }
 };
 
@@ -852,6 +866,40 @@ const sendReminderToAllPendingStudents = () => {
     showToast('WhatsApp reminders opened for pending students.');
 };
 
+const renderJoiningDatesTable = (entries) => {
+    if (!joiningDatesTableBody) return;
+
+    const nameQuery = (joiningDateSearchInput?.value || '').trim().toLowerCase();
+    const activeEntries = entries.filter(([, data]) => isActiveResident(data)).filter(([, data]) =>
+        String(data?.fullName || '').toLowerCase().includes(nameQuery));
+
+    if (!activeEntries.length) {
+        joiningDatesTableBody.innerHTML = '<tr><td colspan="8">No active joining date records found.</td></tr>';
+        return;
+    }
+
+    joiningDatesTableBody.innerHTML = activeEntries.map(([id, data]) => {
+        const status = getRentStatus(data);
+        const photoUrl = data?.passportPhoto;
+        const photoCell = photoUrl && photoUrl !== '-'
+            ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
+            : '<div class="rent-photo-fallback">No photo</div>';
+        const amount = data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0;
+        const whatsappUrl = buildWhatsAppUrl(data?.mobile, getRentReminderMessage(data));
+
+        return `<tr class="${status.label === 'Overdue' ? 'rent-overdue-row' : ''}">
+            <td>${photoCell}</td>
+            <td>${sanitizeText(data?.fullName || '-')}</td>
+            <td>${sanitizeText(data?.mobile || '-')}</td>
+            <td>${sanitizeText(formatDateValue(data?.moveInDate) || '-')}</td>
+            <td>${formatCurrency(amount)}</td>
+            <td>${sanitizeText(formatDateValue(getRecurringDueDate(data)) || '-')}</td>
+            <td><span class="rent-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>
+            <td><a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a></td>
+        </tr>`;
+    }).join('');
+};
+
 const attachMoveOutDateHandlers = () => {
     document.querySelectorAll('.admin-move-out-date').forEach((input) => {
         input.addEventListener('change', async (event) => {
@@ -1089,6 +1137,7 @@ const loadAdminData = async () => {
         updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
+        renderJoiningDatesTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
@@ -1152,6 +1201,10 @@ const initAdminDashboard = () => {
         rentSearchNameInput.addEventListener('input', () => renderRentDueTable(adminApplicationEntriesCache));
     }
 
+    if (joiningDateSearchInput) {
+        joiningDateSearchInput.addEventListener('input', () => renderJoiningDatesTable(adminApplicationEntriesCache));
+    }
+
     if (sendReminderToAllButton) {
         sendReminderToAllButton.addEventListener('click', sendReminderToAllPendingStudents);
     }
@@ -1167,14 +1220,7 @@ const initAdminDashboard = () => {
     syncAdminTableScroll();
 
     if (adminLoginButton) {
-        adminLoginButton.addEventListener('click', () => {
-            const provided = prompt('Enter admin password to access dashboard');
-            if (provided === adminPassword) {
-                window.location.href = 'admin.html';
-            } else if (provided !== null) {
-                showToast('Incorrect admin password.');
-            }
-        });
+        adminLoginButton.addEventListener('click', () => { window.location.href = 'admin.html'; });
     }
 };
 
@@ -1302,12 +1348,10 @@ const saveFormToFirebase = async (formElement, collectionName) => {
             }
         }
 
-        if (collectionName === 'applications') {
-            const duplicateFound = await checkForDuplicateApplication(processedData);
-            if (duplicateFound) {
-                showToast('A registration with the same name, mobile number, and email already exists.');
-                return { success: false, duplicate: true };
-            }
+        await firebaseAuthReady;
+        if (!firebaseAuth?.currentUser) {
+            showToast('Unable to connect securely. Please reload and try again.');
+            return { success: false, duplicate: false };
         }
 
         const databaseRef = firebaseDatabase.ref(`${collectionName}/${Date.now()}`);

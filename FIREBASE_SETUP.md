@@ -75,7 +75,27 @@ When starting, these rules allow anyone to read/write:
 }
 ```
 
-### Database Rules (Production Mode - Recommended)
+### Authentication Setup
+
+1. In **Authentication → Sign-in method**, enable **Email/Password** and **Anonymous** providers.
+2. Create the admin user with Email/Password.
+3. Set the custom claim `{ "admin": true }` for that user using the Firebase Admin SDK from a trusted server. Never set it from browser code.
+
+This project includes `set-admin.js` to do that safely:
+
+```bash
+npm install
+```
+
+Download the service-account JSON from **Project settings → Service accounts → Generate new private key**, save it as `serviceAccountKey.json` in the project folder, then run:
+
+```bash
+npm run set-admin -- your-admin-email@example.com
+```
+
+The key is excluded by `.gitignore`. Delete it from the project folder after use if this machine is shared.
+
+### Database Rules (Production Mode)
 
 For production, use these rules to restrict access:
 
@@ -83,13 +103,31 @@ For production, use these rules to restrict access:
 {
   "rules": {
     "applications": {
-      ".read": false,
-      ".write": true,
-      ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age'])"
+      ".read": "auth != null && auth.token.admin === true",
+      "$applicationId": {
+        ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
+        ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age', 'mobile']) && newData.child('fullName').isString() && newData.child('email').isString() && newData.child('mobile').isString()"
+      }
+    },
+    "receipts": {
+      ".read": "auth != null && auth.token.admin === true",
+      "$receiptId": {
+        ".write": "auth != null && auth.token.admin === true",
+        ".validate": "newData.hasChildren(['receiptNo', 'tenantId', 'tenantName', 'totalAmount'])"
+      }
+    },
+    "contactMessages": {
+      ".read": "auth != null && auth.token.admin === true",
+      "$messageId": {
+        ".write": "auth != null && ((!data.exists() && newData.exists()) || auth.token.admin === true)",
+        ".validate": "newData.hasChildren(['name', 'email', 'message']) && newData.child('name').isString() && newData.child('email').isString() && newData.child('message').isString()"
+      }
     }
   }
 }
 ```
+
+These rules allow anonymous visitors to submit a new application, but prevent them from reading applications or writing receipts. Only an admin account with the custom claim can read or manage either collection.
 
 ## Step 6: Verify the Database URL
 

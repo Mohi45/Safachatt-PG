@@ -27,9 +27,11 @@
     <div id="adminLoginOverlay" class="admin-login-overlay">
         <div class="admin-login-card">
             <h2>Admin Login</h2>
-            <p>Enter the admin password to access registration and contact details.</p>
+            <p>Sign in with your Firebase admin account to access registration and payment details.</p>
+            <label for="adminEmail">Admin email</label>
+            <input id="adminEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
             <label for="adminPassword">Password</label>
-            <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin password" />
+            <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Firebase password" />
             <div class="login-actions">
                 <button id="adminUnlockButton" class="btn btn-primary">Unlock Dashboard</button>
             </div>
@@ -79,6 +81,7 @@
                         data-panel="applications">Registrations</button>
                     <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
                         Management</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="joining-dates">Joining Dates</button>
                     <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
                 </div>
                 <div class="admin-stats">
@@ -198,31 +201,67 @@
                 <h3>Payment Receipts</h3>
                 <p class="admin-table-note">Receipts are grouped by the payment month.</p>
                 <div class="admin-search-field receipt-search-field">
-                    <label for="receiptSearch" class="sr-only">Search payment receipts by tenant name or receipt number</label>
+                    <label for="receiptSearch" class="sr-only">Search payment receipts by tenant name or receipt
+                        number</label>
                     <input id="receiptSearch" type="search" class="admin-search-input"
                         placeholder="Search by name or receipt number" autocomplete="off" />
                 </div>
                 <div class="admin-table-scroll">
-                <table class="admin-table receipt-history-table">
-                    <thead>
-                        <tr>
-                            <th>Receipt No.</th>
-                            <th>Tenant</th>
-                            <th>Room / Bed</th>
-                            <th>Payment For</th>
-                            <th>Method</th>
-                            <th>Status</th>
-                            <th>Total Amount</th>
-                            <th>Payment Date</th>
-                            <th>Received By</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receiptsTableBody">
-                        <tr>
-                            <td colspan="9">Loading payment receipts…</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <table class="admin-table receipt-history-table">
+                        <thead>
+                            <tr>
+                                <th>Receipt No.</th>
+                                <th>Tenant</th>
+                                <th>Room / Bed</th>
+                                <th>Payment For</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Total Amount</th>
+                                <th>Payment Date</th>
+                                <th>Received By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiptsTableBody">
+                            <tr>
+                                <td colspan="9">Loading payment receipts…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="joining-dates">
+                <div class="rent-header">
+                    <div>
+                        <h3>Joining Dates</h3>
+                        <p>View joining dates and the automatically updated monthly rent due date.</p>
+                    </div>
+                </div>
+                <div class="rent-filters">
+                    <label class="sr-only" for="joiningDateSearch">Search by student name</label>
+                    <input id="joiningDateSearch" type="text" class="admin-search-input"
+                        placeholder="Search by student name" />
+                </div>
+                <div class="admin-table-scroll">
+                    <table class="admin-table joining-dates-table">
+                        <thead>
+                            <tr>
+                                <th>Student Photo</th>
+                                <th>Student Name</th>
+                                <th>Mobile Number</th>
+                                <th>Joining Date</th>
+                                <th>Monthly Rent</th>
+                                <th>This Month's Due Date</th>
+                                <th>Status</th>
+                                <th>WhatsApp Reminder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="joiningDatesTableBody">
+                            <tr>
+                                <td colspan="8">Loading joining date data…</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -270,6 +309,7 @@
     </div>
     <!-- Firebase SDK (Compat version for compatibility) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
     <script src="script.js?v=payment-receipts-table"></script>

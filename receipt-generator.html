@@ -721,6 +721,7 @@
             aria-label="Chat on WhatsApp">WhatsApp</a></div>
     <div id="toast" class="toast" aria-live="polite"></div>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
         referrerpolicy="no-referrer"></script>
@@ -911,6 +912,7 @@
         const saveReceiptToFirebase = async () => {
             const selectedTenant = tenantSelect.selectedOptions[0];
             if (!receiptDatabase) { setSaveStatus('Firebase is not available. Please reload the page.', 'error'); return; }
+            if (!firebase.auth().currentUser || firebase.auth().currentUser.isAnonymous) { setSaveStatus('Please sign in as an admin before saving receipts.', 'error'); return; }
             if (!tenantSelect.value || !selectedTenant?.dataset.tenantName) { setSaveStatus('Please select an active tenant first.', 'error'); return; }
             const paymentFor = [...form.querySelectorAll('input[name="paymentFor"]:checked')].map(input => input.value);
             const pgRent = Number(document.getElementById('pgRent').value || 0);
@@ -947,7 +949,11 @@
             update();
         });
         form.addEventListener('input', update); form.addEventListener('change', update); document.getElementById('shareWhatsApp').addEventListener('click', shareReceiptOnWhatsApp); document.getElementById('downloadPDF').addEventListener('click', downloadReceiptPdf); document.getElementById('printReceipt').addEventListener('click', () => window.print()); document.getElementById('printReceiptBottom').addEventListener('click', () => window.print()); document.getElementById('saveReceipt').addEventListener('click', saveReceiptToFirebase); document.getElementById('resetForm').addEventListener('click', () => { form.reset(); document.getElementById('receiptDate').value = today; document.getElementById('paymentDate').value = today; update(); });
-        if (initializeReceiptFirebase()) loadActiveTenants(); else setSaveStatus('Firebase could not be initialized.', 'error');
+        if (initializeReceiptFirebase()) {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && !currentUser.isAnonymous) loadActiveTenants();
+            else setSaveStatus('Sign in through the Admin page before loading tenants.', 'error');
+        } else setSaveStatus('Firebase could not be initialized.', 'error');
         update();
 
         function generateReceiptNo() {
