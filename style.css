@@ -1571,6 +1571,13 @@ p {
     gap: 0.3rem;
 }
 
+.contact-message-cell {
+    min-width: 280px;
+    max-width: 520px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .admin-search-field {
     min-width: 220px;
 }

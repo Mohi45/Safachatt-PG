@@ -82,6 +82,8 @@
                     <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
                         Management</button>
                     <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="contact-messages">Contact
+                        Messages</button>
                 </div>
                 <div class="admin-stats">
                     <div class="stat-card">
@@ -219,6 +221,34 @@
                         <tbody id="receiptsTableBody">
                             <tr>
                                 <td colspan="9">Loading payment receipts…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="contact-messages">
+                <h3>Contact Messages</h3>
+                <p class="admin-table-note">Review messages submitted through the contact form.</p>
+                <div class="admin-search-field receipt-search-field">
+                    <label for="contactMessageSearch" class="sr-only">Search contact messages</label>
+                    <input id="contactMessageSearch" type="search" class="admin-search-input"
+                        placeholder="Search by name, email, phone, or message" autocomplete="off" />
+                </div>
+                <div class="admin-table-scroll">
+                    <table class="admin-table contact-messages-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Message</th>
+                                <th>Received</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactMessagesTableBody">
+                            <tr>
+                                <td colspan="5">Loading contact messages...</td>
                             </tr>
                         </tbody>
                     </table>

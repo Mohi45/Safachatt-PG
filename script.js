@@ -137,6 +137,7 @@ const counters = document.querySelectorAll('.counter');
 const testimonialCards = document.querySelectorAll('.testimonial-card');
 const adminApplicationsTableBody = document.getElementById('applicationsTableBody');
 const receiptsTableBody = document.getElementById('receiptsTableBody');
+const contactMessagesTableBody = document.getElementById('contactMessagesTableBody');
 const adminTotalApplications = document.getElementById('adminTotalApplications');
 const adminTotalReceipts = document.getElementById('adminTotalReceipts');
 const refreshAdminButton = document.getElementById('refreshAdmin');
@@ -149,6 +150,7 @@ const adminPanels = document.querySelectorAll('.admin-panel');
 const adminLoginButton = document.getElementById('adminLoginButton');
 const adminSearchInput = document.getElementById('studentNameSearch');
 const receiptSearchInput = document.getElementById('receiptSearch');
+const contactMessageSearchInput = document.getElementById('contactMessageSearch');
 const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const rentSearchNameInput = document.getElementById('rentSearchName');
@@ -164,6 +166,7 @@ const adminAccessKey = 'safachatt-admin-access';
 
 let adminApplicationEntriesCache = [];
 let adminReceiptEntriesCache = [];
+let adminContactMessageEntriesCache = [];
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -1009,6 +1012,35 @@ const renderReceiptsTable = (entries) => {
     }).join('');
 };
 
+const filterContactMessageEntries = (entries, searchTerm) => {
+    const query = String(searchTerm || '').trim().toLowerCase();
+    if (!query) return entries;
+    return entries.filter(([, data]) => [
+        data?.contactName,
+        data?.contactEmail,
+        data?.contactPhone,
+        data?.contactMessage
+    ].some((value) => String(value || '').toLowerCase().includes(query)));
+};
+
+const renderContactMessagesTable = (entries) => {
+    if (!contactMessagesTableBody) return;
+    if (!entries.length) {
+        contactMessagesTableBody.innerHTML = '<tr><td colspan="5">No contact messages found.</td></tr>';
+        return;
+    }
+
+    contactMessagesTableBody.innerHTML = entries.map(([, data]) => `
+        <tr>
+            <td>${sanitizeText(data?.contactName || '-')}</td>
+            <td><a href="mailto:${sanitizeText(data?.contactEmail || '')}">${sanitizeText(data?.contactEmail || '-')}</a></td>
+            <td><a href="tel:${sanitizeText(data?.contactPhone || '')}">${sanitizeText(data?.contactPhone || '-')}</a></td>
+            <td class="contact-message-cell">${sanitizeText(data?.contactMessage || '-')}</td>
+            <td>${formatSubmittedAt(data?.submittedAt)}</td>
+        </tr>
+    `).join('');
+};
+
 const updateAdminTotals = (apps, receipts) => {
     if (adminTotalApplications) adminTotalApplications.textContent = String(apps.length);
     if (adminTotalReceipts) adminTotalReceipts.textContent = String(receipts.length);
@@ -1021,13 +1053,15 @@ const loadAdminData = async () => {
     }
 
     try {
-        const [appsSnapshot, receiptsSnapshot] = await Promise.all([
+        const [appsSnapshot, receiptsSnapshot, contactMessagesSnapshot] = await Promise.all([
             firebaseDatabase.ref('applications').orderByKey().once('value'),
-            firebaseDatabase.ref('receipts').orderByKey().once('value')
+            firebaseDatabase.ref('receipts').orderByKey().once('value'),
+            firebaseDatabase.ref('contactMessages').orderByKey().once('value')
         ]);
 
         const appsData = appsSnapshot.val() || {};
         const receiptsData = receiptsSnapshot.val() || {};
+        const contactMessagesData = contactMessagesSnapshot.val() || {};
         const applicationEntries = Object.entries(appsData).sort(([a, aData], [b, bData]) => {
             const aIsActive = getResidentStatus(aData).label === 'Active';
             const bIsActive = getResidentStatus(bData).label === 'Active';
@@ -1039,12 +1073,17 @@ const loadAdminData = async () => {
             const bDate = new Date(b?.paymentDate || b?.receiptDate || b?.createdAt || 0).getTime();
             return bDate - aDate;
         });
+        const contactMessageEntries = Object.entries(contactMessagesData).sort(([, a], [, b]) => {
+            return new Date(b?.submittedAt || 0).getTime() - new Date(a?.submittedAt || 0).getTime();
+        });
 
         adminApplicationEntriesCache = applicationEntries;
         adminReceiptEntriesCache = receiptEntries;
+        adminContactMessageEntriesCache = contactMessageEntries;
         const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
         renderApplicationsTable(filteredApplicationEntries);
         renderReceiptsTable(filterReceiptEntries(receiptEntries, receiptSearchInput?.value));
+        renderContactMessagesTable(filterContactMessageEntries(contactMessageEntries, contactMessageSearchInput?.value));
         updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
@@ -1052,6 +1091,7 @@ const loadAdminData = async () => {
         console.error('Error loading admin data:', error);
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
         if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
+        if (contactMessagesTableBody) contactMessagesTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
 };
@@ -1104,6 +1144,12 @@ const initAdminDashboard = () => {
     if (receiptSearchInput) {
         receiptSearchInput.addEventListener('input', () => {
             renderReceiptsTable(filterReceiptEntries(adminReceiptEntriesCache, receiptSearchInput.value));
+        });
+    }
+
+    if (contactMessageSearchInput) {
+        contactMessageSearchInput.addEventListener('input', () => {
+            renderContactMessagesTable(filterContactMessageEntries(adminContactMessageEntriesCache, contactMessageSearchInput.value));
         });
     }
 
