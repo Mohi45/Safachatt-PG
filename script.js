@@ -623,6 +623,27 @@ const getRentStatus = (data) => {
     return { label: 'Pending', className: 'pending' };
 };
 
+const getLateFeeDetails = (data) => {
+    const amountToPay = Number(data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0);
+    const dueDate = getRecurringDueDate(data);
+    const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
+
+    if (paymentReceived || !dueDate) {
+        return { daysLate: 0, lateFee: 0, totalDue: Number.isFinite(amountToPay) ? amountToPay : 0 };
+    }
+
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const normalizedDueDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const differenceInDays = Math.max(0, Math.ceil((todayDate.getTime() - normalizedDueDate.getTime()) / 86400000));
+    const gracePeriodDays = 3;
+    const lateFeeDays = Math.max(0, differenceInDays - (gracePeriodDays - 1));
+    const lateFee = lateFeeDays * 100;
+    const totalDue = Number.isFinite(amountToPay) ? amountToPay + lateFee : lateFee;
+
+    return { daysLate: differenceInDays, lateFee, totalDue };
+};
+
 const formatCurrency = (value) => {
     const amount = Number(value);
     if (Number.isNaN(amount)) return '₹0';
@@ -638,9 +659,17 @@ const buildWhatsAppUrl = (phone, message) => {
 const getRentReminderMessage = (data) => {
     const studentName = data?.fullName || 'Student';
     const rent = data?.monthlyRent || data?.rent || 0;
-    const amountToPay = data?.amountToPay ?? rent;
+    const amountToPay = Number(data?.amountToPay ?? rent ?? 0);
     const dueDate = formatDateValue(getRecurringDueDate(data)) || 'Soon';
-    return `Hello ${studentName},\n\nThis is a reminder that your PG rent for this month is still pending.\n\nAmount to Pay: ₹${amountToPay}\nDue Date: ${dueDate}\n\nKindly make the payment as soon as possible.\n\nThank you,\nPG Management`;
+    const lateFeeDetails = getLateFeeDetails(data);
+    const lateFeeText = lateFeeDetails.lateFee > 0
+        ? `\nLate Fee: ₹${lateFeeDetails.lateFee} (₹100/day after 3 days of due date)\nTotal Due: ₹${lateFeeDetails.totalDue}`
+        : `\nLate Fee: ₹0\nTotal Due: ₹${amountToPay}`;
+    const securityWarning = lateFeeDetails.lateFee > 0
+        ? '\nIf the late fee is not paid, it will be deducted from your security deposit.\n'
+        : '';
+
+    return `Hello ${studentName},\n\nThis is a reminder that your PG rent for this month is still pending.\n\nAmount to Pay: ₹${amountToPay}\nDue Date: ${dueDate}${lateFeeText}${securityWarning}\nKindly make the payment as soon as possible.\n\nThank you,\nSafachatt PG Management`;
 };
 
 const updateRentPaymentInFirebase = async (entryId, value) => {
@@ -718,7 +747,8 @@ const renderRentDueTable = (entries) => {
         const status = getRentStatus(data);
         const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
         const dueDate = formatDateValue(getRecurringDueDate(data));
-        const amountToPay = data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0);
+        const amountToPay = Number(data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0));
+        const lateFeeDetails = getLateFeeDetails(data);
         const photoUrl = data?.passportPhoto;
         const photoCell = photoUrl && photoUrl !== '-'
             ? `<div class="rent-photo-cell"><img src="${sanitizeText(photoUrl)}" alt="${sanitizeText(data?.fullName || 'Student')}" class="rent-photo-preview" /></div>`
@@ -730,7 +760,10 @@ const renderRentDueTable = (entries) => {
                 <td>${photoCell}</td>
                 <td>${sanitizeText(data?.fullName || '-')}</td>
                 <td>${sanitizeText(data?.mobile || '-')}</td>
-                <td>${sanitizeText(dueDate || '-')}</td>
+                <td>
+                    ${sanitizeText(dueDate || '-')}
+                    ${lateFeeDetails.lateFee > 0 ? `<div class="rent-late-fee-note">Late fee: ₹${lateFeeDetails.lateFee}</div>` : ''}
+                </td>
                 <td>
                     <div class="rent-status-badge ${status.className}">${sanitizeText(status.label)}</div>
                     <select class="rent-payment-select" data-entry-id="${sanitizeText(id)}">
@@ -784,7 +817,7 @@ const updateRentSummary = (entries) => {
         return status.label === 'Overdue';
     }).length;
     const totalAmount = activeEntries.reduce((sum, [, data]) => {
-        const amount = Number(data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0);
+        const amount = getLateFeeDetails(data).totalDue;
         return sum + (Number.isFinite(amount) ? amount : 0);
     }, 0);
 
