@@ -162,7 +162,7 @@
                     </div>
                     <div class="rent-summary-card">
                         <h4 id="rentSummaryCollection">0</h4>
-                        <p>Total Amount</p>
+                        <p>Total Received Amount</p>
                     </div>
                 </div>
 
@@ -182,12 +182,13 @@
                                 <th>Rent Due Date</th>
                                 <th>Payment Received</th>
                                 <th>Amount to Pay</th>
+                                <th>Security Fee</th>
                                 <th>WhatsApp Reminder</th>
                             </tr>
                         </thead>
                         <tbody id="rentDueTableBody">
                             <tr>
-                                <td colspan="7">Loading rent due data…</td>
+                                <td colspan="8">Loading rent due data…</td>
                             </tr>
                         </tbody>
                     </table>
@@ -197,6 +198,21 @@
             <div class="container admin-table-container admin-panel hidden reveal" data-panel="receipts">
                 <h3>Payment Receipts</h3>
                 <p class="admin-table-note">Receipts are grouped by the payment month.</p>
+                <div class="receipt-summary-grid">
+                    <div class="rent-summary-card">
+                        <h4 id="receiptMonthTotal">₹0</h4>
+                        <p id="receiptMonthLabel">This Month Received</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="receiptYearTotal">₹0</h4>
+                        <p>This Year Received</p>
+                    </div>
+                    <div class="rent-summary-card receipt-period-card">
+                        <label for="receiptMonthFilter">Check Month</label>
+                        <input id="receiptMonthFilter" type="month" />
+                        <strong id="receiptSelectedMonthTotal">₹0</strong>
+                    </div>
+                </div>
                 <div class="admin-search-field receipt-search-field">
                     <label for="receiptSearch" class="sr-only">Search payment receipts by tenant name or receipt
                         number</label>

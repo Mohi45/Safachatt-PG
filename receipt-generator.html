@@ -347,6 +347,17 @@
             border: 0;
         }
 
+        .receipt-notice {
+            margin: 12px 0 0;
+            padding: 9px 11px;
+            border: 1px solid #e4b7c3;
+            border-left: 4px solid var(--rose);
+            background: #fff2f4;
+            color: #704551;
+            font-size: .82rem;
+            font-weight: 600;
+        }
+
         .authorization {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -585,8 +596,7 @@
                     <div class="full"><label>Payment For</label>
                         <div class="choice-group"><label><input type="checkbox" name="paymentFor" value="Monthly Rent"
                                     checked /> Monthly Rent</label><label><input type="checkbox" name="paymentFor"
-                                    value="Security Deposit" /> Security Deposit</label><label><input type="checkbox"
-                                    name="paymentFor" value="Other" /> Other</label></div>
+                                    value="Other" /> Other</label></div>
                     </div>
                     <div><label for="paymentMethod">Payment Method</label><select id="paymentMethod">
                             <option>Cash</option>
@@ -600,10 +610,11 @@
                         </select></div>
                     <div><label for="pgRent">PG Rent (₹)</label><input id="pgRent" type="number" min="0" value="0" />
                     </div>
-                    <div><label for="utilities">Security Fee</label><input id="utilities" type="number" min="0"
-                            value="0" /></div>
+                    <input id="utilities" type="hidden" value="0" />
                     <div><label for="otherCharges">Late Fee</label><input id="otherCharges" type="number" min="0"
                             value="0" /></div>
+                    <div><label for="totalReceived">Total Received (₹)</label><input id="totalReceived" type="number"
+                            min="0" value="0" /></div>
                     <div><label for="transactionRef">UPI / Transaction Reference</label><input id="transactionRef"
                             placeholder="Optional reference number" /></div>
                     <div><label for="paymentDate">Payment Date</label><input id="paymentDate" type="date" /></div>
@@ -652,18 +663,24 @@
                         <td id="rentOutput">₹0</td>
                     </tr>
                     <tr>
-                        <td>Security Fee</td>
-                        <td id="utilitiesOutput">₹0</td>
-                    </tr>
-                    <tr>
                         <td>Late Fee</td>
                         <td id="otherOutput">₹0</td>
                     </tr>
-                    <tr class="total">
-                        <td>TOTAL AMOUNT PAID</td>
+                    <tr>
+                        <td>Total Amount Due</td>
                         <td id="totalOutput">₹0</td>
                     </tr>
+                    <tr class="total">
+                        <td>TOTAL RECEIVED</td>
+                        <td id="totalReceivedOutput">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Remaining Security</td>
+                        <td id="remainingSecurityOutput">₹0</td>
+                    </tr>
                 </table>
+                <p class="receipt-notice" id="lateFeeNotice">If the late fee is not received, it will be adjusted from
+                    your security deposit.</p>
                 <div class="details" style="margin-top:10px">
                     <div class="wide"><span class="label">Amount in Words</span>
                         <div class="line-value" id="amountWords">Zero rupees only</div>
@@ -778,6 +795,7 @@
                     option.dataset.tenantName = name;
                     option.dataset.roomBed = room;
                     option.dataset.rent = data.amountToPay ?? data.monthlyRent ?? data.rent ?? '';
+                    option.dataset.security = data.securityFee ?? data.securityDeposit ?? data.security ?? data.deposit ?? '';
                     tenantSelect.add(option);
                 });
             } catch (error) {
@@ -796,9 +814,16 @@
             });
             const selected = [...form.querySelectorAll('input[name="paymentFor"]:checked')].map(input => input.value);
             document.getElementById('paymentForOutput').textContent = selected.join('  •  ') || '—';
-            const rent = document.getElementById('pgRent').value, utilities = document.getElementById('utilities').value, other = document.getElementById('otherCharges').value;
-            const total = Number(rent || 0) + Number(utilities || 0) + Number(other || 0);
-            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('utilitiesOutput').textContent = money(utilities); document.getElementById('otherOutput').textContent = money(other); document.getElementById('totalOutput').textContent = money(total); document.getElementById('amountWords').textContent = amountInWords(total);
+            const rent = Number(document.getElementById('pgRent').value || 0), security = Number(document.getElementById('utilities').value || 0), other = Number(document.getElementById('otherCharges').value || 0);
+            const totalReceived = Number(document.getElementById('totalReceived').value || 0);
+            const total = rent + other;
+            const lateFeeReceived = Math.min(other, Math.max(0, totalReceived - rent));
+            const unpaidLateFee = Math.max(0, other - lateFeeReceived);
+            const remainingSecurity = Math.max(0, security - unpaidLateFee);
+            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(other); document.getElementById('totalOutput').textContent = money(total); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
+            document.getElementById('lateFeeNotice').textContent = unpaidLateFee > 0
+                ? `Late fee of ${money(unpaidLateFee)} was not received and will be adjusted from your security deposit.`
+                : 'Late fee received in full. No adjustment will be made from your security deposit.';
             const status = document.getElementById('paymentStatus'); document.querySelector('[data-output="paymentStatus"]').classList.toggle('paid', status.value === 'PAID');
             const selectedTenant = tenantSelect.selectedOptions[0];
             document.querySelectorAll('[data-output="tenantName"]').forEach(output => { output.textContent = selectedTenant?.dataset.tenantName || '—'; });
@@ -918,6 +943,11 @@
             const pgRent = Number(document.getElementById('pgRent').value || 0);
             const securityFee = Number(document.getElementById('utilities').value || 0);
             const lateFee = Number(document.getElementById('otherCharges').value || 0);
+            const totalReceived = Number(document.getElementById('totalReceived').value || 0);
+            const lateFeeReceived = Math.min(lateFee, Math.max(0, totalReceived - pgRent));
+            const unpaidLateFee = Math.max(0, lateFee - lateFeeReceived);
+            const remainingSecurity = Math.max(0, securityFee - unpaidLateFee);
+            const amountDue = pgRent + lateFee;
             const receipt = {
                 receiptNo: document.getElementById('receiptNo').value.trim(),
                 receiptDate: document.getElementById('receiptDate').value,
@@ -927,7 +957,8 @@
                 paymentFor,
                 paymentMethod: document.getElementById('paymentMethod').value,
                 paymentStatus: document.getElementById('paymentStatus').value,
-                pgRent, securityFee, lateFee, totalAmount: pgRent + securityFee + lateFee,
+                pgRent, securityFee, lateFee, amountDue, totalAmount: totalReceived, totalReceived,
+                unpaidLateFee, remainingSecurity,
                 transactionRef: document.getElementById('transactionRef').value.trim(),
                 paymentDate: document.getElementById('paymentDate').value,
                 receivedBy: document.getElementById('receivedBy').value.trim(),
@@ -935,6 +966,10 @@
             };
             try {
                 await receiptDatabase.ref('receipts').push(receipt);
+                await receiptDatabase.ref(`applications/${tenantSelect.value}`).update({
+                    totalReceived,
+                    paymentReceived: receipt.paymentStatus === 'PAID'
+                });
                 setSaveStatus('Receipt saved to Firebase successfully.', 'success');
             } catch (error) {
                 console.error('Unable to save receipt:', error);
@@ -946,13 +981,16 @@
             const selectedTenant = tenantSelect.selectedOptions[0];
             if (selectedTenant?.dataset.roomBed) document.getElementById('roomBed').value = selectedTenant.dataset.roomBed;
             if (selectedTenant?.dataset.rent) document.getElementById('pgRent').value = selectedTenant.dataset.rent;
+            const securityAmount = selectedTenant?.dataset.security || '0';
+            document.getElementById('utilities').value = securityAmount;
             update();
         });
         form.addEventListener('input', update); form.addEventListener('change', update); document.getElementById('shareWhatsApp').addEventListener('click', shareReceiptOnWhatsApp); document.getElementById('downloadPDF').addEventListener('click', downloadReceiptPdf); document.getElementById('printReceipt').addEventListener('click', () => window.print()); document.getElementById('printReceiptBottom').addEventListener('click', () => window.print()); document.getElementById('saveReceipt').addEventListener('click', saveReceiptToFirebase); document.getElementById('resetForm').addEventListener('click', () => { form.reset(); document.getElementById('receiptDate').value = today; document.getElementById('paymentDate').value = today; update(); });
         if (initializeReceiptFirebase()) {
-            const currentUser = firebase.auth().currentUser;
-            if (currentUser && !currentUser.isAnonymous) loadActiveTenants();
-            else setSaveStatus('Sign in through the Admin page before loading tenants.', 'error');
+            firebase.auth().onAuthStateChanged((currentUser) => {
+                if (currentUser && !currentUser.isAnonymous) loadActiveTenants();
+                else setSaveStatus('Sign in through the Admin page before loading tenants.', 'error');
+            });
         } else setSaveStatus('Firebase could not be initialized.', 'error');
         update();
 

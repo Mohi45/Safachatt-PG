@@ -31,11 +31,6 @@ const initializeFirebase = () => {
                 firebaseAuth = typeof firebase.auth === 'function' ? firebase.auth() : null;
                 console.log('✅ Firebase already initialized');
             }
-            if (firebaseAuth && !document.getElementById('adminLoginOverlay')) {
-                firebaseAuthReady = firebaseAuth.signInAnonymously().catch((error) => {
-                    console.error('Anonymous Firebase sign-in failed:', error);
-                });
-            }
         } else {
             console.error('❌ Firebase SDK not loaded. Make sure you are using http:// or https://, not file://');
         }
@@ -150,6 +145,10 @@ const adminPanels = document.querySelectorAll('.admin-panel');
 const adminLoginButton = document.getElementById('adminLoginButton');
 const adminSearchInput = document.getElementById('studentNameSearch');
 const receiptSearchInput = document.getElementById('receiptSearch');
+const receiptMonthFilter = document.getElementById('receiptMonthFilter');
+const receiptMonthTotal = document.getElementById('receiptMonthTotal');
+const receiptYearTotal = document.getElementById('receiptYearTotal');
+const receiptSelectedMonthTotal = document.getElementById('receiptSelectedMonthTotal');
 const contactMessageSearchInput = document.getElementById('contactMessageSearch');
 const adminTableScroll = document.getElementById('applicationsTableScroll');
 const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
@@ -470,7 +469,7 @@ const getResidentStatus = (data) => {
 };
 
 const unlockAdminAccess = async () => {
-    const email = adminEmailInput?.value.trim() ?? '';
+    const email = adminEmailInput?.value.trim().toLowerCase() ?? '';
     const password = adminPasswordInput?.value ?? '';
     if (!firebaseAuth || !email || !password) {
         showToast('Enter your Firebase admin email and password.');
@@ -486,7 +485,12 @@ const unlockAdminAccess = async () => {
         if (adminPasswordInput) adminPasswordInput.value = '';
     } catch (error) {
         console.error('Firebase admin sign-in failed:', error);
-        showToast('Admin sign-in failed. Check your email and password.');
+        const message = error?.code === 'auth/invalid-credential'
+            ? 'Invalid admin email or password. Verify the Firebase user and Email/Password sign-in provider.'
+            : error?.code === 'auth/operation-not-allowed'
+                ? 'Email/Password sign-in is disabled in Firebase Authentication.'
+                : 'Admin sign-in failed. Check your Firebase configuration and credentials.';
+        showToast(message);
         adminPasswordInput?.focus();
     }
 };
@@ -724,12 +728,34 @@ const updateRentAmountInFirebase = async (entryId, value) => {
     }
 };
 
+const getSecurityFee = (data) => Number(data?.securityFee ?? data?.securityDeposit ?? data?.security ?? data?.deposit ?? 0) || 0;
+
+const updateRentSecurityInFirebase = async (entryId, value) => {
+    if (!firebaseDatabase || !entryId) return false;
+    try {
+        const parsedValue = Number(value);
+        const safeValue = Number.isNaN(parsedValue) ? 0 : parsedValue;
+        const updates = { securityFee: safeValue };
+        await firebaseDatabase.ref(`applications/${entryId}`).update(updates);
+        const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
+        if (matchingEntry) {
+            matchingEntry[1] = { ...matchingEntry[1], ...updates };
+        }
+        showToast('Security amount updated.');
+        return true;
+    } catch (error) {
+        console.error('Error updating security amount:', error);
+        showToast('Unable to update security amount.');
+        return false;
+    }
+};
+
 const renderRentDueTable = (entries) => {
     if (!rentDueTableBody) return;
 
     const activeEntries = entries.filter(([, data]) => isActiveResident(data));
     if (!activeEntries.length) {
-        rentDueTableBody.innerHTML = '<tr><td colspan="7">No active rent records found.</td></tr>';
+        rentDueTableBody.innerHTML = '<tr><td colspan="8">No active rent records found.</td></tr>';
         return;
     }
 
@@ -748,6 +774,7 @@ const renderRentDueTable = (entries) => {
         const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
         const dueDate = formatDateValue(getRecurringDueDate(data));
         const amountToPay = Number(data?.amountToPay ?? (data?.monthlyRent || data?.rent || 0));
+        const securityFee = getSecurityFee(data);
         const lateFeeDetails = getLateFeeDetails(data);
         const photoUrl = data?.passportPhoto;
         const photoCell = photoUrl && photoUrl !== '-'
@@ -775,6 +802,9 @@ const renderRentDueTable = (entries) => {
                     <input type="number" class="rent-amount-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(amountToPay)}" min="0" step="1" inputmode="numeric" placeholder="0" />
                 </td>
                 <td>
+                    <input type="number" class="rent-security-input" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(securityFee)}" min="0" step="1" inputmode="numeric" placeholder="0" />
+                </td>
+                <td>
                     <a class="rent-whatsapp-btn" href="${sanitizeText(whatsappUrl)}" target="_blank" rel="noreferrer">WhatsApp</a>
                 </td>
             </tr>
@@ -800,6 +830,14 @@ const renderRentDueTable = (entries) => {
         });
     });
 
+    document.querySelectorAll('.rent-security-input').forEach((input) => {
+        input.addEventListener('change', async (event) => {
+            const target = event.currentTarget;
+            await updateRentSecurityInFirebase(target.dataset.entryId, target.value);
+            renderRentDueTable(adminApplicationEntriesCache);
+        });
+    });
+
 };
 
 const updateRentSummary = (entries) => {
@@ -816,9 +854,14 @@ const updateRentSummary = (entries) => {
         const status = getRentStatus(data);
         return status.label === 'Overdue';
     }).length;
-    const totalAmount = activeEntries.reduce((sum, [, data]) => {
-        const amount = getLateFeeDetails(data).totalDue;
-        return sum + (Number.isFinite(amount) ? amount : 0);
+    const totalReceivedAmount = activeEntries.reduce((sum, [, data]) => {
+        const paymentReceived = data?.paymentReceived === true || data?.paymentReceived === 'true';
+        const receivedAmount = Number(data?.totalReceived ?? data?.receivedAmount ?? data?.amountReceived);
+        const amountToPay = Number(data?.amountToPay ?? data?.monthlyRent ?? data?.rent ?? 0);
+        const amount = Number.isFinite(receivedAmount) && receivedAmount >= 0
+            ? receivedAmount
+            : paymentReceived ? amountToPay : 0;
+        return sum + amount;
     }, 0);
 
     if (rentSummaryTotal) rentSummaryTotal.textContent = String(total);
@@ -826,7 +869,7 @@ const updateRentSummary = (entries) => {
     if (rentSummaryPending) rentSummaryPending.textContent = String(pending);
     if (rentSummaryTodayDue) rentSummaryTodayDue.textContent = String(todayDue);
     if (rentSummaryOverdue) rentSummaryOverdue.textContent = String(overdue);
-    if (rentSummaryCollection) rentSummaryCollection.textContent = String(totalAmount);
+    if (rentSummaryCollection) rentSummaryCollection.textContent = formatCurrency(totalReceivedAmount);
 };
 
 const sendReminderToAllPendingStudents = () => {
@@ -1009,6 +1052,34 @@ const getReceiptMonthLabel = (data) => {
     return date ? date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'Date not available';
 };
 
+const getReceiptDate = (data) => parseDateValue(data?.paymentDate || data?.receiptDate || data?.createdAt);
+const getReceiptAmount = (data) => {
+    const amount = Number(data?.totalReceived ?? data?.totalAmount ?? data?.amountDue ?? 0);
+    return Number.isFinite(amount) ? amount : 0;
+};
+const getReceiptMonthKey = (date) => date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : '';
+const updateReceiptTotals = (entries) => {
+    const now = new Date();
+    const currentMonthKey = getReceiptMonthKey(now);
+    const currentYear = now.getFullYear();
+    const selectedMonthKey = receiptMonthFilter?.value || currentMonthKey;
+    const monthTotal = entries.reduce((sum, [, data]) => {
+        const date = getReceiptDate(data);
+        return getReceiptMonthKey(date) === currentMonthKey ? sum + getReceiptAmount(data) : sum;
+    }, 0);
+    const yearTotal = entries.reduce((sum, [, data]) => {
+        const date = getReceiptDate(data);
+        return date?.getFullYear() === currentYear ? sum + getReceiptAmount(data) : sum;
+    }, 0);
+    const selectedMonthTotal = entries.reduce((sum, [, data]) => {
+        return getReceiptMonthKey(getReceiptDate(data)) === selectedMonthKey ? sum + getReceiptAmount(data) : sum;
+    }, 0);
+
+    if (receiptMonthTotal) receiptMonthTotal.textContent = formatCurrency(monthTotal);
+    if (receiptYearTotal) receiptYearTotal.textContent = formatCurrency(yearTotal);
+    if (receiptSelectedMonthTotal) receiptSelectedMonthTotal.textContent = formatCurrency(selectedMonthTotal);
+};
+
 const filterReceiptEntries = (entries, searchTerm) => {
     const query = String(searchTerm || '').trim().toLowerCase();
     if (!query) return entries;
@@ -1020,6 +1091,7 @@ const filterReceiptEntries = (entries, searchTerm) => {
 
 const renderReceiptsTable = (entries) => {
     if (!receiptsTableBody) return;
+    updateReceiptTotals(adminReceiptEntriesCache);
     if (!entries.length) {
         receiptsTableBody.innerHTML = '<tr><td colspan="9">No payment receipts found.</td></tr>';
         return;
@@ -1030,7 +1102,7 @@ const renderReceiptsTable = (entries) => {
         const monthRow = month === currentMonth ? '' : `<tr class="receipt-month-group"><th colspan="9">${sanitizeText(month)}</th></tr>`;
         currentMonth = month;
         const paymentFor = Array.isArray(data.paymentFor) ? data.paymentFor.join(', ') : data.paymentFor;
-        const total = Number(data.totalAmount ?? ((Number(data.pgRent) || 0) + (Number(data.securityFee) || 0) + (Number(data.lateFee) || 0)));
+        const total = Number(data.totalReceived ?? data.totalAmount ?? data.amountDue ?? ((Number(data.pgRent) || 0) + (Number(data.securityFee) || 0) + (Number(data.lateFee) || 0)));
         return `${monthRow}<tr>
             <td>${sanitizeText(data.receiptNo || '-')}</td>
             <td>${sanitizeText(data.tenantName || '-')}</td>
@@ -1178,6 +1250,11 @@ const initAdminDashboard = () => {
         receiptSearchInput.addEventListener('input', () => {
             renderReceiptsTable(filterReceiptEntries(adminReceiptEntriesCache, receiptSearchInput.value));
         });
+    }
+
+    if (receiptMonthFilter) {
+        receiptMonthFilter.value = new Date().toISOString().slice(0, 7);
+        receiptMonthFilter.addEventListener('change', () => updateReceiptTotals(adminReceiptEntriesCache));
     }
 
     if (contactMessageSearchInput) {

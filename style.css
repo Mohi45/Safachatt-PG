@@ -1509,6 +1509,45 @@ p {
     margin: 1.25rem 0 1.5rem;
 }
 
+.receipt-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 1.5rem;
+}
+
+.receipt-period-card {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.receipt-period-card label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.receipt-period-card input {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(199, 125, 255, 0.25);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+
+.receipt-period-card strong {
+    color: var(--primary);
+    font-size: 1.15rem;
+}
+
+@media (max-width: 700px) {
+    .receipt-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 1100px) {
     .rent-summary-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
