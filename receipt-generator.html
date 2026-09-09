@@ -611,8 +611,14 @@
                     <div><label for="pgRent">PG Rent (₹)</label><input id="pgRent" type="number" min="0" value="0" />
                     </div>
                     <input id="utilities" type="hidden" value="0" />
-                    <div><label for="otherCharges">Late Fee</label><input id="otherCharges" type="number" min="0"
-                            value="0" /></div>
+                    <input id="otherCharges" type="hidden" value="0" />
+                    <div><label for="additionalChargeType">Additional Charge</label><select id="additionalChargeType">
+                            <option value="lateFee">Late Fee</option>
+                            <option value="security">Security Deposit</option>
+                            <option value="none">None</option>
+                        </select></div>
+                    <div><label for="additionalChargeAmount">Additional Charge Amount (₹)</label><input
+                            id="additionalChargeAmount" type="number" min="0" value="0" /></div>
                     <div><label for="totalReceived">Total Received (₹)</label><input id="totalReceived" type="number"
                             min="0" value="0" /></div>
                     <div><label for="transactionRef">UPI / Transaction Reference</label><input id="transactionRef"
@@ -663,7 +669,7 @@
                         <td id="rentOutput">₹0</td>
                     </tr>
                     <tr>
-                        <td>Late Fee</td>
+                        <td id="otherLabel">Late Fee</td>
                         <td id="otherOutput">₹0</td>
                     </tr>
                     <tr>
@@ -808,7 +814,15 @@
         const formatDate = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
         const wordsUnderThousand = n => { const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']; const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']; return n < 20 ? ones[n] : n < 100 ? `${tens[Math.floor(n / 10)]}${n % 10 ? ` ${ones[n % 10]}` : ''}` : `${ones[Math.floor(n / 100)]} Hundred${n % 100 ? ` ${wordsUnderThousand(n % 100)}` : ''}`; };
         const amountInWords = amount => { let n = Math.floor(Number(amount) || 0); if (!n) return 'Zero rupees only'; const parts = [];[[10000000, 'Crore'], [100000, 'Lakh'], [1000, 'Thousand']].forEach(([v, label]) => { if (n >= v) { parts.push(`${wordsUnderThousand(Math.floor(n / v))} ${label}`); n %= v; } }); if (n) parts.push(wordsUnderThousand(n)); return `${parts.join(' ')} rupees only`; };
+        const syncAdditionalCharge = () => {
+            const type = document.getElementById('additionalChargeType').value;
+            const amount = Number(document.getElementById('additionalChargeAmount').value || 0);
+            document.getElementById('utilities').value = type === 'security' ? amount : 0;
+            document.getElementById('otherCharges').value = type === 'lateFee' ? amount : 0;
+            document.getElementById('otherLabel').textContent = type === 'security' ? 'Security Deposit' : 'Late Fee';
+        };
         const update = () => {
+            syncAdditionalCharge();
             form.querySelectorAll('input:not([type="checkbox"]), select').forEach(input => {
                 document.querySelectorAll(`[data-output="${input.id}"]`).forEach(output => { output.textContent = input.type === 'date' ? formatDate(input.value) : (input.value || '—'); });
             });
@@ -816,14 +830,15 @@
             document.getElementById('paymentForOutput').textContent = selected.join('  •  ') || '—';
             const rent = Number(document.getElementById('pgRent').value || 0), security = Number(document.getElementById('utilities').value || 0), other = Number(document.getElementById('otherCharges').value || 0);
             const totalReceived = Number(document.getElementById('totalReceived').value || 0);
-            const total = rent + other;
+            const total = rent + security + other;
             const lateFeeReceived = Math.min(other, Math.max(0, totalReceived - rent));
             const unpaidLateFee = Math.max(0, other - lateFeeReceived);
             const remainingSecurity = Math.max(0, security - unpaidLateFee);
-            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(other); document.getElementById('totalOutput').textContent = money(total); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
+            const additionalCharge = security || other;
+            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(additionalCharge); document.getElementById('totalOutput').textContent = money(total); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
             document.getElementById('lateFeeNotice').textContent = unpaidLateFee > 0
                 ? `Late fee of ${money(unpaidLateFee)} was not received and will be adjusted from your security deposit.`
-                : 'Late fee received in full. No adjustment will be made from your security deposit.';
+                : security > 0 ? 'Security deposit payment received. No late fee has been charged.' : 'No late fee has been charged for this payment.';
             const status = document.getElementById('paymentStatus'); document.querySelector('[data-output="paymentStatus"]').classList.toggle('paid', status.value === 'PAID');
             const selectedTenant = tenantSelect.selectedOptions[0];
             document.querySelectorAll('[data-output="tenantName"]').forEach(output => { output.textContent = selectedTenant?.dataset.tenantName || '—'; });
@@ -941,13 +956,14 @@
             if (!tenantSelect.value || !selectedTenant?.dataset.tenantName) { setSaveStatus('Please select an active tenant first.', 'error'); return; }
             const paymentFor = [...form.querySelectorAll('input[name="paymentFor"]:checked')].map(input => input.value);
             const pgRent = Number(document.getElementById('pgRent').value || 0);
+            syncAdditionalCharge();
             const securityFee = Number(document.getElementById('utilities').value || 0);
             const lateFee = Number(document.getElementById('otherCharges').value || 0);
             const totalReceived = Number(document.getElementById('totalReceived').value || 0);
             const lateFeeReceived = Math.min(lateFee, Math.max(0, totalReceived - pgRent));
             const unpaidLateFee = Math.max(0, lateFee - lateFeeReceived);
             const remainingSecurity = Math.max(0, securityFee - unpaidLateFee);
-            const amountDue = pgRent + lateFee;
+            const amountDue = pgRent + securityFee + lateFee;
             const receipt = {
                 receiptNo: document.getElementById('receiptNo').value.trim(),
                 receiptDate: document.getElementById('receiptDate').value,
@@ -981,8 +997,9 @@
             const selectedTenant = tenantSelect.selectedOptions[0];
             if (selectedTenant?.dataset.roomBed) document.getElementById('roomBed').value = selectedTenant.dataset.roomBed;
             if (selectedTenant?.dataset.rent) document.getElementById('pgRent').value = selectedTenant.dataset.rent;
-            const securityAmount = selectedTenant?.dataset.security || '0';
-            document.getElementById('utilities').value = securityAmount;
+            if (document.getElementById('additionalChargeType').value === 'security') {
+                document.getElementById('additionalChargeAmount').value = selectedTenant?.dataset.security || '0';
+            }
             update();
         });
         form.addEventListener('input', update); form.addEventListener('change', update); document.getElementById('shareWhatsApp').addEventListener('click', shareReceiptOnWhatsApp); document.getElementById('downloadPDF').addEventListener('click', downloadReceiptPdf); document.getElementById('printReceipt').addEventListener('click', () => window.print()); document.getElementById('printReceiptBottom').addEventListener('click', () => window.print()); document.getElementById('saveReceipt').addEventListener('click', saveReceiptToFirebase); document.getElementById('resetForm').addEventListener('click', () => { form.reset(); document.getElementById('receiptDate').value = today; document.getElementById('paymentDate').value = today; update(); });
