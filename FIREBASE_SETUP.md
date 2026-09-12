@@ -116,6 +116,13 @@ For production, use these rules to restrict access:
         ".validate": "newData.hasChildren(['receiptNo', 'tenantId', 'tenantName', 'totalAmount'])"
       }
     },
+    "expenses": {
+      ".read": "auth != null && auth.token.admin === true",
+      "$expenseId": {
+        ".write": "auth != null && auth.token.admin === true",
+        ".validate": "newData.hasChildren(['title', 'amount', 'category', 'date']) && newData.child('title').isString() && newData.child('amount').isNumber() && newData.child('category').isString() && newData.child('date').isString()"
+      }
+    },
     "contactMessages": {
       ".read": "auth != null && auth.token.admin === true",
       "$messageId": {
@@ -126,6 +133,8 @@ For production, use these rules to restrict access:
   }
 }
 ```
+
+After updating the rules, publish them in Firebase Console under **Realtime Database → Rules**. The rules in `database.rules.json` and this example must both include the `expenses` section, otherwise expense saves will fail with `PERMISSION_DENIED`.
 
 These rules allow visitors to create a new application or contact message without signing in, but prevent them from reading, editing, or deleting data. Only an admin account with the custom claim can read or manage the collections. Anonymous Authentication is optional with these rules.
 

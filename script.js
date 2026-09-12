@@ -133,6 +133,7 @@ const testimonialCards = document.querySelectorAll('.testimonial-card');
 const adminApplicationsTableBody = document.getElementById('applicationsTableBody');
 const receiptsTableBody = document.getElementById('receiptsTableBody');
 const contactMessagesTableBody = document.getElementById('contactMessagesTableBody');
+const expensesTableBody = document.getElementById('expensesTableBody');
 const adminTotalApplications = document.getElementById('adminTotalApplications');
 const adminTotalReceipts = document.getElementById('adminTotalReceipts');
 const refreshAdminButton = document.getElementById('refreshAdmin');
@@ -161,11 +162,32 @@ const rentSummaryPending = document.getElementById('rentSummaryPending');
 const rentSummaryTodayDue = document.getElementById('rentSummaryTodayDue');
 const rentSummaryOverdue = document.getElementById('rentSummaryOverdue');
 const rentSummaryCollection = document.getElementById('rentSummaryCollection');
+const expenseForm = document.getElementById('expenseForm');
+const expenseIdInput = document.getElementById('expenseId');
+const expenseTitleInput = document.getElementById('expenseTitle');
+const expenseAmountInput = document.getElementById('expenseAmount');
+const expenseCategoryInput = document.getElementById('expenseCategory');
+const expenseDateInput = document.getElementById('expenseDate');
+const expensePaymentMethodInput = document.getElementById('expensePaymentMethod');
+const expenseNoteInput = document.getElementById('expenseNote');
+const expenseSubmitButton = document.getElementById('expenseSubmit');
+const expenseCancelEditButton = document.getElementById('expenseCancelEdit');
+const expenseSearchInput = document.getElementById('expenseSearch');
+const expenseMonthFilter = document.getElementById('expenseMonthFilter');
+const expenseCategoryFilter = document.getElementById('expenseCategoryFilter');
+const exportExpensesButton = document.getElementById('exportExpenses');
+const addMilkExpensesButton = document.getElementById('addMilkExpenses');
+const expenseTotal = document.getElementById('expenseTotal');
+const expenseMonthTotal = document.getElementById('expenseMonthTotal');
+const expenseMonthLabel = document.getElementById('expenseMonthLabel');
+const expenseYearTotal = document.getElementById('expenseYearTotal');
+const expenseCount = document.getElementById('expenseCount');
 const adminAccessKey = 'safachatt-admin-access';
 
 let adminApplicationEntriesCache = [];
 let adminReceiptEntriesCache = [];
 let adminContactMessageEntriesCache = [];
+let adminExpenseEntriesCache = [];
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -478,6 +500,12 @@ const unlockAdminAccess = async () => {
 
     try {
         await firebaseAuth.signInWithEmailAndPassword(email, password);
+        const tokenResult = await firebaseAuth.currentUser.getIdTokenResult(true);
+        if (tokenResult?.claims?.admin !== true) {
+            await firebaseAuth.signOut();
+            showToast('This Firebase account is not marked as an admin. Run the set-admin command, then sign in again.');
+            return;
+        }
         adminLoginOverlay?.classList.add('hidden');
         document.body.classList.remove('admin-login-hidden');
         loadAdminData();
@@ -489,7 +517,9 @@ const unlockAdminAccess = async () => {
             ? 'Invalid admin email or password. Verify the Firebase user and Email/Password sign-in provider.'
             : error?.code === 'auth/operation-not-allowed'
                 ? 'Email/Password sign-in is disabled in Firebase Authentication.'
-                : 'Admin sign-in failed. Check your Firebase configuration and credentials.';
+                : error?.code === 'PERMISSION_DENIED'
+                    ? 'Firebase rules denied access. Deploy database.rules.json and sign in again.'
+                    : 'Admin sign-in failed. Check your Firebase configuration and credentials.';
         showToast(message);
         adminPasswordInput?.focus();
     }
@@ -1146,6 +1176,214 @@ const renderContactMessagesTable = (entries) => {
     `).join('');
 };
 
+const getExpenseAmount = (data) => {
+    const amount = Number(data?.amount || 0);
+    return Number.isFinite(amount) ? amount : 0;
+};
+
+const getExpenseDate = (data) => parseDateValue(data?.date || data?.createdAt);
+const getExpenseMonthKey = (date) => date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : '';
+
+const getFilteredExpenseEntries = () => {
+    const query = String(expenseSearchInput?.value || '').trim().toLowerCase();
+    const month = expenseMonthFilter?.value || '';
+    const category = expenseCategoryFilter?.value || '';
+    return adminExpenseEntriesCache.filter(([, data]) => {
+        const date = getExpenseDate(data);
+        const searchable = [data?.title, data?.category, data?.paymentMethod, data?.note]
+            .map((value) => String(value || '').toLowerCase()).join(' ');
+        return (!query || searchable.includes(query)) &&
+            (!month || getExpenseMonthKey(date) === month) &&
+            (!category || data?.category === category);
+    });
+};
+
+const updateExpenseTotals = (entries) => {
+    const now = new Date();
+    const selectedMonthKey = expenseMonthFilter?.value || getExpenseMonthKey(now);
+    const [selectedYear, selectedMonth] = selectedMonthKey.split('-').map(Number);
+    const selectedMonthDate = selectedYear && selectedMonth ? new Date(selectedYear, selectedMonth - 1, 1) : now;
+    const year = now.getFullYear();
+    const allTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => sum + getExpenseAmount(data), 0);
+    const monthTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => getExpenseMonthKey(getExpenseDate(data)) === selectedMonthKey ? sum + getExpenseAmount(data) : sum, 0);
+    const yearTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => getExpenseDate(data)?.getFullYear() === year ? sum + getExpenseAmount(data) : sum, 0);
+    if (expenseTotal) expenseTotal.textContent = formatCurrency(allTotal);
+    if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(monthTotal);
+    if (expenseMonthLabel) {
+        expenseMonthLabel.textContent = `Total for ${selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`;
+    }
+    if (expenseYearTotal) expenseYearTotal.textContent = formatCurrency(yearTotal);
+    if (expenseCount) expenseCount.textContent = String(entries.length);
+};
+
+const renderExpensesTable = (entries) => {
+    if (!expensesTableBody) return;
+    updateExpenseTotals(entries);
+    if (!entries.length) {
+        expensesTableBody.innerHTML = '<tr><td colspan="7">No expenses match the current filters.</td></tr>';
+        return;
+    }
+    expensesTableBody.innerHTML = entries.map(([id, data]) => `
+        <tr>
+            <td>${sanitizeText(formatDateValue(data?.date) || '-')}</td>
+            <td><strong>${sanitizeText(data?.title || '-')}</strong></td>
+            <td>${sanitizeText(data?.category || '-')}</td>
+            <td>${sanitizeText(data?.paymentMethod || '-')}</td>
+            <td class="expense-note-cell">${sanitizeText(data?.note || '-')}</td>
+            <td><strong>${formatCurrency(getExpenseAmount(data))}</strong></td>
+            <td class="expense-actions"><button type="button" class="expense-action-button" data-expense-edit="${sanitizeText(id)}">Edit</button><button type="button" class="expense-action-button danger" data-expense-delete="${sanitizeText(id)}">Delete</button></td>
+        </tr>
+    `).join('');
+};
+
+const resetExpenseForm = () => {
+    expenseForm?.reset();
+    if (expenseIdInput) expenseIdInput.value = '';
+    if (expenseDateInput) expenseDateInput.value = new Date().toISOString().slice(0, 10);
+    if (expenseSubmitButton) expenseSubmitButton.textContent = 'Save expense';
+    expenseCancelEditButton?.classList.add('hidden');
+};
+
+const editExpense = (entryId) => {
+    const entry = adminExpenseEntriesCache.find(([id]) => id === entryId);
+    if (!entry) return;
+    const [, data] = entry;
+    if (expenseIdInput) expenseIdInput.value = entryId;
+    if (expenseTitleInput) expenseTitleInput.value = data.title || '';
+    if (expenseAmountInput) expenseAmountInput.value = data.amount || '';
+    if (expenseCategoryInput) expenseCategoryInput.value = data.category || '';
+    if (expenseDateInput) expenseDateInput.value = data.date || '';
+    if (expensePaymentMethodInput) expensePaymentMethodInput.value = data.paymentMethod || 'Cash';
+    if (expenseNoteInput) expenseNoteInput.value = data.note || '';
+    if (expenseSubmitButton) expenseSubmitButton.textContent = 'Update expense';
+    expenseCancelEditButton?.classList.remove('hidden');
+    expenseTitleInput?.focus();
+};
+
+const saveExpense = async (event) => {
+    event.preventDefault();
+    if (!firebaseDatabase || !expenseForm?.reportValidity()) return;
+    const amount = Number(expenseAmountInput?.value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('Enter an expense amount greater than zero.');
+        return;
+    }
+    const entryId = expenseIdInput?.value;
+    const data = {
+        title: expenseTitleInput.value.trim(),
+        amount,
+        category: expenseCategoryInput.value,
+        date: expenseDateInput.value,
+        paymentMethod: expensePaymentMethodInput.value,
+        note: expenseNoteInput.value.trim(),
+        updatedAt: new Date().toISOString()
+    };
+    try {
+        const expenseRef = entryId ? firebaseDatabase.ref(`expenses/${entryId}`) : firebaseDatabase.ref('expenses').push();
+        if (!entryId) data.createdAt = data.updatedAt;
+        await expenseRef.set(data);
+        resetExpenseForm();
+        await loadAdminData();
+        showToast(entryId ? 'Expense updated.' : 'Expense saved.');
+    } catch (error) {
+        console.error('Error saving expense:', error);
+        const message = error?.code === 'PERMISSION_DENIED'
+            ? 'Expense blocked by Firebase rules. Deploy database.rules.json, then refresh the page.'
+            : 'Unable to save expense.';
+        showToast(message);
+    }
+};
+
+const deleteExpense = async (entryId) => {
+    if (!firebaseDatabase || !firebaseAuth?.currentUser || !window.confirm('Delete this expense? This action cannot be undone.')) return;
+    const adminUser = firebaseAuth.currentUser;
+    const password = window.prompt(`Enter the password for ${adminUser.email} to delete this expense:`);
+    if (!password) {
+        showToast('Expense deletion cancelled.');
+        return;
+    }
+
+    try {
+        const credential = firebase.auth.EmailAuthProvider.credential(adminUser.email, password);
+        await adminUser.reauthenticateWithCredential(credential);
+        await firebaseDatabase.ref(`expenses/${entryId}`).remove();
+        await loadAdminData();
+        showToast('Expense deleted.');
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        const message = error?.code === 'auth/invalid-credential' || error?.code === 'auth/wrong-password'
+            ? 'Incorrect admin password. Expense was not deleted.'
+            : error?.code === 'PERMISSION_DENIED'
+                ? 'Expense deletion blocked by Firebase rules.'
+                : 'Unable to delete expense.';
+        showToast(message);
+    }
+};
+
+const addDailyMilkExpenses = async () => {
+    if (!firebaseDatabase || !firebaseAuth?.currentUser) return;
+    const formatLocalDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const startDate = new Date(2026, 7, 10);
+    const today = new Date();
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const existingMilkDates = new Set(adminExpenseEntriesCache
+        .filter(([, data]) => data?.title === 'Milk' && data?.amount === 120)
+        .map(([, data]) => data.date));
+    const entriesToAdd = [];
+
+    for (const date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+        const dateValue = formatLocalDate(date);
+        if (!existingMilkDates.has(dateValue)) entriesToAdd.push(dateValue);
+    }
+
+    if (!entriesToAdd.length) {
+        showToast('Daily milk entries are already up to date.');
+        return;
+    }
+    if (!window.confirm(`Add ${entriesToAdd.length} milk entries at ₹120 each from 10 Aug 2026?`)) return;
+
+    try {
+        const writes = entriesToAdd.map((dateValue) => {
+            const expenseRef = firebaseDatabase.ref('expenses').push();
+            return expenseRef.set({
+                title: 'Milk',
+                amount: 120,
+                category: 'Food & Kitchen',
+                date: dateValue,
+                paymentMethod: 'Cash',
+                note: 'Daily milk expense',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+        });
+        await Promise.all(writes);
+        await loadAdminData();
+        showToast(`${entriesToAdd.length} daily milk entries added.`);
+    } catch (error) {
+        console.error('Error adding daily milk expenses:', error);
+        showToast(error?.code === 'PERMISSION_DENIED'
+            ? 'Milk entries blocked by Firebase rules. Deploy database.rules.json.'
+            : 'Unable to add daily milk expenses.');
+    }
+};
+
+const exportExpenses = () => {
+    const entries = getFilteredExpenseEntries();
+    if (!entries.length) {
+        showToast('There are no expenses to export.');
+        return;
+    }
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Date', 'Title', 'Category', 'Payment method', 'Note', 'Amount'], ...entries.map(([, data]) => [data.date, data.title, data.category, data.paymentMethod, data.note, getExpenseAmount(data)])];
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `safachatt-expenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+};
+
 const updateAdminTotals = (apps, receipts) => {
     if (adminTotalApplications) adminTotalApplications.textContent = String(apps.length);
     if (adminTotalReceipts) adminTotalReceipts.textContent = String(receipts.length);
@@ -1158,15 +1396,17 @@ const loadAdminData = async () => {
     }
 
     try {
-        const [appsSnapshot, receiptsSnapshot, contactMessagesSnapshot] = await Promise.all([
+        const [appsSnapshot, receiptsSnapshot, contactMessagesSnapshot, expensesSnapshot] = await Promise.all([
             firebaseDatabase.ref('applications').orderByKey().once('value'),
             firebaseDatabase.ref('receipts').orderByKey().once('value'),
-            firebaseDatabase.ref('contactMessages').orderByKey().once('value')
+            firebaseDatabase.ref('contactMessages').orderByKey().once('value'),
+            firebaseDatabase.ref('expenses').orderByKey().once('value')
         ]);
 
         const appsData = appsSnapshot.val() || {};
         const receiptsData = receiptsSnapshot.val() || {};
         const contactMessagesData = contactMessagesSnapshot.val() || {};
+        const expensesData = expensesSnapshot.val() || {};
         const applicationEntries = Object.entries(appsData).sort(([a, aData], [b, bData]) => {
             const aIsActive = getResidentStatus(aData).label === 'Active';
             const bIsActive = getResidentStatus(bData).label === 'Active';
@@ -1181,14 +1421,19 @@ const loadAdminData = async () => {
         const contactMessageEntries = Object.entries(contactMessagesData).sort(([, a], [, b]) => {
             return new Date(b?.submittedAt || 0).getTime() - new Date(a?.submittedAt || 0).getTime();
         });
+        const expenseEntries = Object.entries(expensesData).sort(([, a], [, b]) => {
+            return (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0);
+        });
 
         adminApplicationEntriesCache = applicationEntries;
         adminReceiptEntriesCache = receiptEntries;
         adminContactMessageEntriesCache = contactMessageEntries;
+        adminExpenseEntriesCache = expenseEntries;
         const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
         renderApplicationsTable(filteredApplicationEntries);
         renderReceiptsTable(filterReceiptEntries(receiptEntries, receiptSearchInput?.value));
         renderContactMessagesTable(filterContactMessageEntries(contactMessageEntries, contactMessageSearchInput?.value));
+        renderExpensesTable(getFilteredExpenseEntries());
         updateAdminTotals(filteredApplicationEntries, receiptEntries);
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
@@ -1197,6 +1442,7 @@ const loadAdminData = async () => {
         if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
         if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
         if (contactMessagesTableBody) contactMessagesTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
+        if (expensesTableBody) expensesTableBody.innerHTML = '<tr><td colspan="7">Failed to load expenses.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
 };
@@ -1267,6 +1513,21 @@ const initAdminDashboard = () => {
         rentSearchNameInput.addEventListener('input', () => renderRentDueTable(adminApplicationEntriesCache));
     }
 
+    if (expenseDateInput && !expenseDateInput.value) expenseDateInput.value = new Date().toISOString().slice(0, 10);
+    expenseForm?.addEventListener('submit', saveExpense);
+    expenseCancelEditButton?.addEventListener('click', resetExpenseForm);
+    [expenseSearchInput, expenseMonthFilter, expenseCategoryFilter].forEach((input) => {
+        input?.addEventListener('input', () => renderExpensesTable(getFilteredExpenseEntries()));
+        input?.addEventListener('change', () => renderExpensesTable(getFilteredExpenseEntries()));
+    });
+    exportExpensesButton?.addEventListener('click', exportExpenses);
+    addMilkExpensesButton?.addEventListener('click', addDailyMilkExpenses);
+    expensesTableBody?.addEventListener('click', (event) => {
+        const editButton = event.target.closest('[data-expense-edit]');
+        const deleteButton = event.target.closest('[data-expense-delete]');
+        if (editButton) editExpense(editButton.dataset.expenseEdit);
+        if (deleteButton) deleteExpense(deleteButton.dataset.expenseDelete);
+    });
 
     if (sendReminderToAllButton) {
         sendReminderToAllButton.addEventListener('click', sendReminderToAllPendingStudents);

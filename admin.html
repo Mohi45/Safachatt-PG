@@ -82,6 +82,7 @@
                     <button type="button" class="btn admin-tab-button" data-panel="rent-due">Rent Due
                         Management</button>
                     <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="expenses">Expenses</button>
                     <button type="button" class="btn admin-tab-button" data-panel="contact-messages">Contact
                         Messages</button>
                 </div>
@@ -237,6 +238,130 @@
                         <tbody id="receiptsTableBody">
                             <tr>
                                 <td colspan="9">Loading payment receipts…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container admin-table-container admin-panel hidden reveal" data-panel="expenses">
+                <div class="expense-header">
+                    <div>
+                        <h3>Expense Manager</h3>
+                        <p class="admin-table-note">Record every operating cost and keep a clear view of where money
+                            goes.</p>
+                    </div>
+                    <div class="expense-header-actions">
+                        <button id="addMilkExpenses" type="button" class="btn btn-primary">Add daily milk ₹120</button>
+                        <button id="exportExpenses" type="button" class="btn btn-secondary">Export CSV</button>
+                    </div>
+                </div>
+
+                <form id="expenseForm" class="expense-form" novalidate>
+                    <input id="expenseId" type="hidden" />
+                    <div class="expense-form-grid">
+                        <div class="field-group">
+                            <label for="expenseTitle">Expense title *</label>
+                            <input id="expenseTitle" type="text" placeholder="Electricity bill" required />
+                        </div>
+                        <div class="field-group">
+                            <label for="expenseAmount">Amount (₹) *</label>
+                            <input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="2500"
+                                required />
+                        </div>
+                        <div class="field-group">
+                            <label for="expenseCategory">Category *</label>
+                            <select id="expenseCategory" required>
+                                <option value="">Choose category</option>
+                                <option>Utilities</option>
+                                <option>Food & Kitchen</option>
+                                <option>Maintenance</option>
+                                <option>Staff</option>
+                                <option>Supplies</option>
+                                <option>Rent / Property</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="expenseDate">Date *</label>
+                            <input id="expenseDate" type="date" required />
+                        </div>
+                        <div class="field-group">
+                            <label for="expensePaymentMethod">Payment method</label>
+                            <select id="expensePaymentMethod">
+                                <option>Cash</option>
+                                <option>UPI</option>
+                                <option>Bank transfer</option>
+                                <option>Card</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="expenseNote">Note</label>
+                            <input id="expenseNote" type="text" placeholder="Optional details" />
+                        </div>
+                    </div>
+                    <div class="expense-form-actions">
+                        <button id="expenseCancelEdit" type="button" class="btn btn-secondary hidden">Cancel
+                            edit</button>
+                        <button id="expenseSubmit" type="submit" class="btn btn-primary">Save expense</button>
+                    </div>
+                </form>
+
+                <div class="rent-summary-grid expense-summary-grid">
+                    <div class="rent-summary-card">
+                        <h4 id="expenseTotal">₹0</h4>
+                        <p>All expenses</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="expenseMonthTotal">₹0</h4>
+                        <p id="expenseMonthLabel">Selected month</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="expenseYearTotal">₹0</h4>
+                        <p>This year</p>
+                    </div>
+                    <div class="rent-summary-card">
+                        <h4 id="expenseCount">0</h4>
+                        <p>Entries shown</p>
+                    </div>
+                </div>
+
+                <div class="expense-filters">
+                    <label class="sr-only" for="expenseSearch">Search expenses</label>
+                    <input id="expenseSearch" type="search" class="admin-search-input"
+                        placeholder="Search title, category, note" />
+                    <label class="sr-only" for="expenseMonthFilter">Filter by month</label>
+                    <input id="expenseMonthFilter" type="month" />
+                    <label class="sr-only" for="expenseCategoryFilter">Filter by category</label>
+                    <select id="expenseCategoryFilter">
+                        <option value="">All categories</option>
+                        <option>Utilities</option>
+                        <option>Food & Kitchen</option>
+                        <option>Maintenance</option>
+                        <option>Staff</option>
+                        <option>Supplies</option>
+                        <option>Rent / Property</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="admin-table-scroll expense-table-scroll">
+                    <table class="admin-table expense-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Method</th>
+                                <th>Note</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesTableBody">
+                            <tr>
+                                <td colspan="7">Loading expenses...</td>
                             </tr>
                         </tbody>
                     </table>
