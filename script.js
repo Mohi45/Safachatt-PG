@@ -182,6 +182,10 @@ const expenseMonthTotal = document.getElementById('expenseMonthTotal');
 const expenseMonthLabel = document.getElementById('expenseMonthLabel');
 const expenseYearTotal = document.getElementById('expenseYearTotal');
 const expenseCount = document.getElementById('expenseCount');
+const expenseComparisonLabel = document.getElementById('expenseComparisonLabel');
+const expenseReceivedTotal = document.getElementById('expenseReceivedTotal');
+const expenseComparedTotal = document.getElementById('expenseComparedTotal');
+const expenseBalanceTotal = document.getElementById('expenseBalanceTotal');
 const adminAccessKey = 'safachatt-admin-access';
 
 let adminApplicationEntriesCache = [];
@@ -1207,6 +1211,8 @@ const updateExpenseTotals = (entries) => {
     const allTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => sum + getExpenseAmount(data), 0);
     const monthTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => getExpenseMonthKey(getExpenseDate(data)) === selectedMonthKey ? sum + getExpenseAmount(data) : sum, 0);
     const yearTotal = adminExpenseEntriesCache.reduce((sum, [, data]) => getExpenseDate(data)?.getFullYear() === year ? sum + getExpenseAmount(data) : sum, 0);
+    const receivedTotal = adminReceiptEntriesCache.reduce((sum, [, data]) => getReceiptMonthKey(getReceiptDate(data)) === selectedMonthKey ? sum + getReceiptAmount(data) : sum, 0);
+    const balance = receivedTotal - monthTotal;
     if (expenseTotal) expenseTotal.textContent = formatCurrency(allTotal);
     if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(monthTotal);
     if (expenseMonthLabel) {
@@ -1214,6 +1220,15 @@ const updateExpenseTotals = (entries) => {
     }
     if (expenseYearTotal) expenseYearTotal.textContent = formatCurrency(yearTotal);
     if (expenseCount) expenseCount.textContent = String(entries.length);
+    if (expenseComparisonLabel) {
+        expenseComparisonLabel.textContent = `${selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })} comparison`;
+    }
+    if (expenseReceivedTotal) expenseReceivedTotal.textContent = formatCurrency(receivedTotal);
+    if (expenseComparedTotal) expenseComparedTotal.textContent = formatCurrency(monthTotal);
+    if (expenseBalanceTotal) {
+        expenseBalanceTotal.textContent = `${balance >= 0 ? 'Balance' : 'Shortfall'} ${formatCurrency(Math.abs(balance))}`;
+        expenseBalanceTotal.className = balance >= 0 ? 'expense-balance-positive' : 'expense-balance-negative';
+    }
 };
 
 const renderExpensesTable = (entries) => {
