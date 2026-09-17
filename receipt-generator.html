@@ -850,7 +850,9 @@
             const total = rent + security + other;
             const lateFeeReceived = Math.min(other, Math.max(0, totalReceived - rent));
             const unpaidLateFee = Math.max(0, other - lateFeeReceived);
-            const remainingSecurity = Math.max(0, security - unpaidLateFee);
+            const tenantSecurity = Number(tenantSelect.selectedOptions[0]?.dataset.security || 0);
+            const securityBalance = tenantSecurity || security;
+            const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
             const additionalCharge = security || other;
             document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(additionalCharge); document.getElementById('totalOutput').textContent = money(total); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
             document.getElementById('lateFeeNotice').textContent = unpaidLateFee > 0
@@ -985,7 +987,9 @@
             const totalReceived = Number(document.getElementById('totalReceived').value || 0);
             const lateFeeReceived = Math.min(lateFee, Math.max(0, totalReceived - pgRent));
             const unpaidLateFee = Math.max(0, lateFee - lateFeeReceived);
-            const remainingSecurity = Math.max(0, securityFee - unpaidLateFee);
+            const tenantSecurity = Number(selectedTenant.dataset.security || 0);
+            const securityBalance = tenantSecurity || securityFee;
+            const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
             const amountDue = pgRent + securityFee + lateFee;
             const receipt = {
                 receiptNo: document.getElementById('receiptNo').value.trim(),
