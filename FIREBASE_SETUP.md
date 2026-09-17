@@ -106,7 +106,7 @@ For production, use these rules to restrict access:
       ".read": "auth != null && auth.token.admin === true",
       "$applicationId": {
         ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
-        ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age', 'mobile']) && newData.child('fullName').isString() && newData.child('email').isString() && newData.child('mobile').isString()"
+        ".validate": "newData.hasChildren(['fullName', 'email', 'dob', 'age', 'mobile']) && newData.child('fullName').isString() && newData.child('email').isString() && (newData.child('mobile').isString() || newData.child('mobile').isNumber())"
       }
     },
     "receipts": {
