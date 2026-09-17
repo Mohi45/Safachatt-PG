@@ -778,6 +778,16 @@
             today.setHours(0, 0, 0, 0);
             return !moveOutDate || moveOutDate > today;
         };
+        const getTenantSecurityAmount = data => {
+            const values = [
+                data?.securityFee,
+                data?.securityDepositAmount,
+                data?.securityDeposit,
+                data?.security,
+                data?.deposit
+            ];
+            return values.map(Number).find(value => Number.isFinite(value) && value > 0) || 0;
+        };
         const initializeReceiptFirebase = () => {
             if (typeof firebase === 'undefined') return false;
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -808,7 +818,7 @@
                     option.dataset.tenantName = name;
                     option.dataset.roomBed = room;
                     option.dataset.rent = data.amountToPay ?? data.monthlyRent ?? data.rent ?? '';
-                    option.dataset.security = data.securityFee ?? data.securityDeposit ?? data.security ?? data.deposit ?? '';
+                    option.dataset.security = String(getTenantSecurityAmount(data));
                     tenantSelect.add(option);
                 });
             } catch (error) {
@@ -1016,6 +1026,13 @@
             if (selectedTenant?.dataset.rent) document.getElementById('pgRent').value = selectedTenant.dataset.rent;
             if (document.getElementById('additionalChargeType').value === 'security') {
                 document.getElementById('additionalChargeAmount').value = selectedTenant?.dataset.security || '0';
+            }
+            update();
+        });
+        document.getElementById('additionalChargeType').addEventListener('change', () => {
+            const selectedTenant = tenantSelect.selectedOptions[0];
+            if (document.getElementById('additionalChargeType').value === 'security' && selectedTenant) {
+                document.getElementById('additionalChargeAmount').value = selectedTenant.dataset.security || '0';
             }
             update();
         });
