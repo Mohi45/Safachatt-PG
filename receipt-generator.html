@@ -784,6 +784,13 @@
             receiptDatabase = firebase.database();
             return true;
         };
+        const getAdminUser = async () => {
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser || currentUser.isAnonymous) return null;
+
+            const tokenResult = await currentUser.getIdTokenResult(true);
+            return tokenResult?.claims?.admin === true ? currentUser : null;
+        };
         const loadActiveTenants = async () => {
             if (!receiptDatabase) return;
             try {
@@ -952,7 +959,13 @@
         const saveReceiptToFirebase = async () => {
             const selectedTenant = tenantSelect.selectedOptions[0];
             if (!receiptDatabase) { setSaveStatus('Firebase is not available. Please reload the page.', 'error'); return; }
-            if (!firebase.auth().currentUser || firebase.auth().currentUser.isAnonymous) { setSaveStatus('Please sign in as an admin before saving receipts.', 'error'); return; }
+            let adminUser;
+            try {
+                adminUser = await getAdminUser();
+            } catch (error) {
+                console.error('Unable to verify Firebase admin access:', error);
+            }
+            if (!adminUser) { setSaveStatus('Please sign in with a Firebase account marked as an admin before saving receipts.', 'error'); return; }
             if (!tenantSelect.value || !selectedTenant?.dataset.tenantName) { setSaveStatus('Please select an active tenant first.', 'error'); return; }
             const paymentFor = [...form.querySelectorAll('input[name="paymentFor"]:checked')].map(input => input.value);
             const pgRent = Number(document.getElementById('pgRent').value || 0);
@@ -981,15 +994,19 @@
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             };
             try {
-                await receiptDatabase.ref('receipts').push(receipt);
-                await receiptDatabase.ref(`applications/${tenantSelect.value}`).update({
-                    totalReceived,
-                    paymentReceived: receipt.paymentStatus === 'PAID'
+                const receiptKey = receiptDatabase.ref('receipts').push().key;
+                await receiptDatabase.ref().update({
+                    [`receipts/${receiptKey}`]: receipt,
+                    [`applications/${tenantSelect.value}/totalReceived`]: totalReceived,
+                    [`applications/${tenantSelect.value}/paymentReceived`]: receipt.paymentStatus === 'PAID'
                 });
                 setSaveStatus('Receipt saved to Firebase successfully.', 'success');
             } catch (error) {
                 console.error('Unable to save receipt:', error);
-                setSaveStatus('Unable to save receipt. Please try again.', 'error');
+                const message = error?.code === 'PERMISSION_DENIED'
+                    ? 'Firebase denied the save. Sign in again with an account that has the admin claim.'
+                    : 'Unable to save receipt. Please try again.';
+                setSaveStatus(message, 'error');
             }
         };
         const today = new Date().toISOString().slice(0, 10); document.getElementById('receiptDate').value = today; document.getElementById('paymentDate').value = today;
@@ -1004,9 +1021,19 @@
         });
         form.addEventListener('input', update); form.addEventListener('change', update); document.getElementById('shareWhatsApp').addEventListener('click', shareReceiptOnWhatsApp); document.getElementById('downloadPDF').addEventListener('click', downloadReceiptPdf); document.getElementById('printReceipt').addEventListener('click', () => window.print()); document.getElementById('printReceiptBottom').addEventListener('click', () => window.print()); document.getElementById('saveReceipt').addEventListener('click', saveReceiptToFirebase); document.getElementById('resetForm').addEventListener('click', () => { form.reset(); document.getElementById('receiptDate').value = today; document.getElementById('paymentDate').value = today; update(); });
         if (initializeReceiptFirebase()) {
-            firebase.auth().onAuthStateChanged((currentUser) => {
-                if (currentUser && !currentUser.isAnonymous) loadActiveTenants();
-                else setSaveStatus('Sign in through the Admin page before loading tenants.', 'error');
+            firebase.auth().onAuthStateChanged(async (currentUser) => {
+                if (!currentUser || currentUser.isAnonymous) {
+                    setSaveStatus('Sign in through the Admin page before loading tenants.', 'error');
+                    return;
+                }
+
+                try {
+                    if (await getAdminUser()) loadActiveTenants();
+                    else setSaveStatus('This Firebase account is not marked as an admin. Sign in again after assigning the admin claim.', 'error');
+                } catch (error) {
+                    console.error('Unable to verify Firebase admin access:', error);
+                    setSaveStatus('Unable to verify admin access. Please sign in again.', 'error');
+                }
             });
         } else setSaveStatus('Firebase could not be initialized.', 'error');
         update();
