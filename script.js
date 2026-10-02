@@ -714,14 +714,46 @@ const updateRentPaymentInFirebase = async (entryId, value) => {
     if (!firebaseDatabase || !entryId) return false;
     try {
         const paymentReceived = value === 'true';
-        const updates = { paymentReceived };
+        const applicationRef = firebaseDatabase.ref(`applications/${entryId}`);
+        let updatedData = null;
+        let feeDeductedNow = 0;
 
-        await firebaseDatabase.ref(`applications/${entryId}`).update(updates);
+        // Apply the payment and any late-fee deduction in one transaction so
+        // repeated clicks cannot deduct the same month's fee more than once.
+        const transactionResult = await applicationRef.transaction((currentData) => {
+            if (!currentData) return currentData;
+            const updates = { ...currentData, paymentReceived };
+
+            if (paymentReceived && currentData.paymentReceived !== true && currentData.paymentReceived !== 'true') {
+                const dueDate = getRecurringDueDate(currentData);
+                const dueDateKey = dueDate ? formatDateValue(dueDate) : '';
+                const lateFee = getLateFeeDetails({ ...currentData, paymentReceived: false }).lateFee;
+                const alreadyDeducted = dueDateKey
+                    && currentData.lateFeeDeductedForDueDate === dueDateKey;
+
+                if (lateFee > 0 && !alreadyDeducted) {
+                    const securityBalance = Math.max(0, getSecurityFee(currentData));
+                    const deducted = Math.min(securityBalance, lateFee);
+                    feeDeductedNow = deducted;
+                    updates.securityFee = securityBalance - deducted;
+                    updates.lateFeeDeducted = deducted;
+                    updates.lateFeeDeductedAt = new Date().toISOString();
+                    updates.lateFeeDeductedForDueDate = dueDateKey;
+                }
+            }
+
+            return updates;
+        }, undefined, false);
+        if (transactionResult.committed) updatedData = transactionResult.snapshot.val();
+
+        if (!updatedData) throw new Error('Rent payment update was not committed.');
         const matchingEntry = adminApplicationEntriesCache.find(([id]) => id === entryId);
         if (matchingEntry) {
-            matchingEntry[1] = { ...matchingEntry[1], ...updates };
+            matchingEntry[1] = updatedData;
         }
-        showToast(paymentReceived ? 'Payment marked as received.' : 'Payment marked as pending.');
+        showToast(paymentReceived
+            ? (feeDeductedNow > 0 ? `Payment marked received. ₹${feeDeductedNow} late fee deducted from security.` : 'Payment marked as received.')
+            : 'Payment marked as pending.');
         return true;
     } catch (error) {
         console.error('Error updating rent payment status:', error);

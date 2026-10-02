@@ -1027,7 +1027,10 @@
         tenantSelect.addEventListener('change', () => {
             const selectedTenant = tenantSelect.selectedOptions[0];
             if (selectedTenant?.dataset.roomBed) document.getElementById('roomBed').value = selectedTenant.dataset.roomBed;
-            if (selectedTenant?.dataset.rent) document.getElementById('pgRent').value = selectedTenant.dataset.rent;
+            if (selectedTenant?.dataset.rent) {
+                document.getElementById('pgRent').value = selectedTenant.dataset.rent;
+                document.getElementById('totalReceived').value = selectedTenant.dataset.rent;
+            }
             if (document.getElementById('additionalChargeType').value === 'security') {
                 document.getElementById('additionalChargeAmount').value = selectedTenant?.dataset.security || '0';
             }
