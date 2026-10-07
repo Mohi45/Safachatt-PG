@@ -103,27 +103,34 @@
             </div>
 
             <div class="container admin-table-container admin-panel reveal" data-panel="applications">
-                <h3>Application Submissions</h3>
-                <div class="admin-table-scroll admin-table-scroll-top" id="applicationsTableScrollTop">
-                    <div class="admin-table-scroll-spacer"></div>
+                <div class="admin-table-heading">
+                    <div>
+                        <h3>Application Submissions</h3>
+                        <p>Review resident details and uploaded documents.</p>
+                    </div>
+                    <div class="admin-search-field">
+                        <label for="studentNameSearch" class="sr-only">Search by student name</label>
+                        <input id="studentNameSearch" type="search" class="admin-search-input"
+                            placeholder="Search applicants" autocomplete="off" />
+                    </div>
                 </div>
                 <div class="admin-table-scroll" id="applicationsTableScroll">
-                    <table class="admin-table admin-vertical-table">
+                    <table class="admin-table applications-table">
                         <thead>
                             <tr>
-                                <th>
-                                    <div class="admin-search-field">
-                                        <label for="studentNameSearch" class="sr-only">Search by student name</label>
-                                        <input id="studentNameSearch" type="text" class="admin-search-input"
-                                            placeholder="Search student name" />
-                                    </div>
-                                </th>
-                                <th id="applicantHeaderContainer"> 🕉️ हर हर महादेव 🕉️ </th>
+                                <th>Applicant</th>
+                                <th>Contact</th>
+                                <th>Move out</th>
+                                <th>Resident</th>
+                                <th>Photo</th>
+                                <th>Aadhaar</th>
+                                <th>ID card</th>
+                                <th>More details</th>
                             </tr>
                         </thead>
                         <tbody id="applicationsTableBody">
                             <tr>
-                                <td colspan="10">Loading application entries…</td>
+                                <td colspan="8">Loading application entries…</td>
                             </tr>
                         </tbody>
                     </table>

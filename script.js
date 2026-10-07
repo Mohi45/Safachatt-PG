@@ -151,8 +151,6 @@ const receiptMonthTotal = document.getElementById('receiptMonthTotal');
 const receiptYearTotal = document.getElementById('receiptYearTotal');
 const receiptSelectedMonthTotal = document.getElementById('receiptSelectedMonthTotal');
 const contactMessageSearchInput = document.getElementById('contactMessageSearch');
-const adminTableScroll = document.getElementById('applicationsTableScroll');
-const adminTableScrollTop = document.getElementById('applicationsTableScrollTop');
 const rentSearchNameInput = document.getElementById('rentSearchName');
 const rentDueTableBody = document.getElementById('rentDueTableBody');
 const sendReminderToAllButton = document.getElementById('sendReminderToAll');
@@ -246,6 +244,15 @@ const ensureMobileShell = () => {
         document.body.appendChild(mobileNav);
     }
 
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('.nav-menu a, .mobile-nav-link').forEach((link) => {
+        const isCurrentPage = link.getAttribute('href') === currentPage ||
+            (currentPage === 'index.html' && link.getAttribute('href') === 'index.html');
+        link.classList.toggle('active', isCurrentPage);
+        if (isCurrentPage) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+    });
+
     if (!document.getElementById('installAppButton')) {
         const installButton = document.createElement('button');
         installButton.id = 'installAppButton';
@@ -275,13 +282,6 @@ const ensureMobileShell = () => {
     installAppButton = document.getElementById('installAppButton');
     backButton = document.getElementById('backButton');
 
-    document.querySelectorAll('.mobile-nav-link').forEach((link) => {
-        if (link.getAttribute('href') === window.location.pathname.split('/').pop() || link.getAttribute('href') === 'index.html' && (window.location.pathname.endsWith('/') || window.location.pathname.endsWith('index.html'))) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
-    });
 };
 
 const trackMobileActions = () => {
@@ -1022,15 +1022,13 @@ const renderDocumentCell = (value, entryId, label, field, accept) => {
             : '<div class="admin-photo-fallback">No document uploaded</div>';
 
     return `
-        <td>
-            <div class="admin-photo-cell">
-                ${previewMarkup}
-                <label class="admin-photo-upload">
-                    <span>${value === '-' ? 'Upload document' : 'Replace document'}</span>
-                    <input type="file" accept="${sanitizeText(accept)}" class="admin-document-upload-input" data-entry-id="${sanitizeText(entryId)}" data-field="${sanitizeText(field)}" />
-                </label>
-            </div>
-        </td>
+        <div class="admin-photo-cell">
+            ${previewMarkup}
+            <label class="admin-photo-upload">
+                <span>${value === '-' ? 'Upload' : 'Replace'}</span>
+                <input type="file" accept="${sanitizeText(accept)}" class="admin-document-upload-input" data-entry-id="${sanitizeText(entryId)}" data-field="${sanitizeText(field)}" />
+            </label>
+        </div>
     `;
 };
 
@@ -1054,61 +1052,37 @@ const handleApplicationSearch = () => {
 const renderApplicationsTable = (entries) => {
     if (!adminApplicationsTableBody) return;
     if (!entries.length) {
-        adminApplicationsTableBody.innerHTML = '<tr><td colspan="10">No applications found.</td></tr>';
+        adminApplicationsTableBody.innerHTML = '<tr><td colspan="8" class="admin-table-empty">No applicants match your search.</td></tr>';
         return;
     }
 
-
-
-    const fieldLabels = [
-        ['Applicant Name', 'fullName'],
-        ['Photo', 'passportPhoto'],
-        ['Email', 'email'],
-        ['Father Name', 'fatherName'],
-        ['Mother Name', 'motherName'],
-        ['DOB', 'dob'],
-        ['Age', 'age'],
-        ['Move-in Date', 'moveInDate'],
-        ['Move Out Date', 'moveOutDate'],
-        ['Resident Status', 'residentStatus'],
-        ['Alternate Number', 'alternateNumber'],
-        ['Aadhaar', 'aadhaar'],
-        ['Address', 'address'],
-        ['Status', 'status'],
-        ['Institution', 'institution'],
-        ['Course / Role', 'position'],
-        ['Food Preference', 'foodPref'],
-        ['Emergency Contact', 'emergencyContact'],
-        ['Medical Conditions', 'medicalConditions'],
-        ['Aadhaar Upload', 'aadhaarUpload'],
-        ['ID Card Upload', 'idCardUpload']
+    const details = [
+        ['Father', 'fatherName'], ['Mother', 'motherName'], ['Date of birth', 'dob'],
+        ['Age', 'age'], ['Alternate number', 'alternateNumber'], ['Aadhaar number', 'aadhaar'],
+        ['Address', 'address'], ['Application status', 'status'], ['Institution', 'institution'],
+        ['Course / role', 'position'], ['Food preference', 'foodPref'],
+        ['Emergency contact', 'emergencyContact'], ['Medical conditions', 'medicalConditions']
     ];
 
-    adminApplicationsTableBody.innerHTML = fieldLabels
-        .map(([label, key]) => {
-            const cells = entries
-                .map(([id, data]) => {
-                    const value = data[key] || '-';
-                    if (key === 'moveOutDate') {
-                        const inputValue = value === '-' ? '' : value;
-                        return `<td><input type="date" class="admin-move-out-date" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(inputValue)}" /></td>`;
-                    }
-                    if (key === 'residentStatus') {
-                        const status = getResidentStatus(data);
-                        return `<td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>`;
-                    }
-                    if (key === 'passportPhoto') {
-                        return renderDocumentCell(value, id, label, key, 'image/*');
-                    }
-                    if (key === 'aadhaarUpload' || key === 'idCardUpload') {
-                        return renderDocumentCell(value, id, label, key, 'image/*,application/pdf');
-                    }
-                    return `<td>${sanitizeText(value)}</td>`;
-                })
-                .join('');
-            return `<tr><th>${sanitizeText(label)}</th>${cells}</tr>`;
-        })
-        .join('');
+    adminApplicationsTableBody.innerHTML = entries.map(([id, data]) => {
+        const name = data?.fullName || 'Unnamed applicant';
+        const moveOutDate = data?.moveOutDate || '';
+        const status = getResidentStatus(data);
+        const detailRows = details.map(([label, key]) => `
+            <div class="applicant-detail"><span>${sanitizeText(label)}</span><strong>${sanitizeText(data?.[key] || '-')}</strong></div>
+        `).join('');
+
+        return `<tr>
+            <td><div class="applicant-name"><strong>${sanitizeText(name)}</strong><span>Move in ${sanitizeText(formatDateValue(data?.moveInDate) || '-')}</span></div></td>
+            <td><div class="applicant-contact"><a href="mailto:${sanitizeText(data?.email || '')}">${sanitizeText(data?.email || '-')}</a><a href="tel:${sanitizeText(data?.mobile || '')}">${sanitizeText(data?.mobile || '-')}</a></div></td>
+            <td><input type="date" class="admin-move-out-date" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(moveOutDate)}" aria-label="Move out date for ${sanitizeText(name)}" /></td>
+            <td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>
+            <td>${renderDocumentCell(data?.passportPhoto || '-', id, 'Applicant photo', 'passportPhoto', 'image/*')}</td>
+            <td>${renderDocumentCell(data?.aadhaarUpload || '-', id, 'Aadhaar document', 'aadhaarUpload', 'image/*,application/pdf')}</td>
+            <td>${renderDocumentCell(data?.idCardUpload || '-', id, 'ID card', 'idCardUpload', 'image/*,application/pdf')}</td>
+            <td><details class="admin-details applicant-details"><summary>View details</summary><div class="applicant-details-grid">${detailRows}</div></details></td>
+        </tr>`;
+    }).join('');
 
     attachMoveOutDateHandlers();
     attachDocumentUploadHandlers();
@@ -1486,25 +1460,12 @@ const loadAdminData = async () => {
         renderRentDueTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
-        if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9">Failed to load applications.</td></tr>';
+        if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="8" class="admin-table-empty">Failed to load applications.</td></tr>';
         if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
         if (contactMessagesTableBody) contactMessagesTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
         if (expensesTableBody) expensesTableBody.innerHTML = '<tr><td colspan="7">Failed to load expenses.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
-};
-
-const syncAdminTableScroll = () => {
-    if (!adminTableScroll || !adminTableScrollTop) return;
-
-    const table = adminTableScroll.querySelector('table');
-    const spacer = adminTableScrollTop.querySelector('.admin-table-scroll-spacer');
-
-    if (table && spacer) {
-        spacer.style.minWidth = `${table.scrollWidth}px`;
-    }
-
-    adminTableScrollTop.scrollLeft = adminTableScroll.scrollLeft;
 };
 
 const initAdminDashboard = () => {
@@ -1579,16 +1540,6 @@ const initAdminDashboard = () => {
     if (sendReminderToAllButton) {
         sendReminderToAllButton.addEventListener('click', sendReminderToAllPendingStudents);
     }
-
-    if (adminTableScroll && adminTableScrollTop) {
-        adminTableScroll.addEventListener('scroll', syncAdminTableScroll);
-        adminTableScrollTop.addEventListener('scroll', () => {
-            adminTableScroll.scrollLeft = adminTableScrollTop.scrollLeft;
-        });
-        window.addEventListener('resize', syncAdminTableScroll);
-    }
-
-    syncAdminTableScroll();
 
     if (adminLoginButton) {
         adminLoginButton.addEventListener('click', () => { window.location.href = 'admin.html'; });

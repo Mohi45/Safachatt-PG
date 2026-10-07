@@ -2416,6 +2416,203 @@ p {
     }
 }
 
+/* Shared finishing touches for a calmer, consistent feel across every page. */
+:root {
+    --bg: #fbf7fc;
+    --surface: #ffffff;
+    --surface-soft: #fffaff;
+    --text: #30243a;
+    --muted: #766a80;
+    --primary: #b565d9;
+    --primary-dark: #8b45b3;
+    --accent: #f4dafa;
+    --accent-dark: #fff4fc;
+    --shadow: 0 14px 38px rgba(91, 55, 112, 0.09);
+}
+
+[data-theme="dark"] {
+    --bg: #17121c;
+    --surface: #241c2b;
+    --surface-soft: #211927;
+    --text: #f7effa;
+    --muted: #c6b8ce;
+    --primary: #df9af0;
+    --primary-dark: #c674df;
+    --accent: #382743;
+    --accent-dark: #2a2032;
+    --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+body {
+    line-height: 1.6;
+    background:
+        radial-gradient(circle at 8% 4%, rgba(224, 177, 239, 0.2), transparent 25rem),
+        radial-gradient(circle at 94% 42%, rgba(255, 212, 224, 0.2), transparent 28rem),
+        var(--bg);
+}
+
+.site-header {
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border-bottom-color: rgba(181, 101, 217, 0.12);
+}
+
+.header-inner {
+    min-height: 5rem;
+}
+
+.nav-menu {
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.nav-menu a {
+    padding: 0.55rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.nav-menu a:hover,
+.nav-menu a:focus-visible,
+.nav-menu a.active {
+    color: var(--primary-dark);
+    background: rgba(181, 101, 217, 0.1);
+}
+
+.nav-menu a:focus-visible,
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.menu-toggle:focus-visible,
+.mobile-nav-link:focus-visible {
+    outline: 3px solid rgba(181, 101, 217, 0.45);
+    outline-offset: 3px;
+}
+
+.section {
+    padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+}
+
+.section-heading {
+    margin-bottom: 2.25rem;
+}
+
+.section-label {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(181, 101, 217, 0.1);
+    letter-spacing: 0.12em;
+}
+
+.home-card,
+.facility-card,
+.room-card,
+.testimonial-card,
+.contact-form-card,
+.faq-item,
+.form-wrapper,
+.admin-table-container,
+.rent-summary-card,
+.expense-comparison-card {
+    border: 1px solid rgba(181, 101, 217, 0.12);
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.home-card:hover,
+.home-card:focus-visible,
+.facility-card:hover,
+.room-card:hover,
+.testimonial-card:hover,
+.contact-form-card:hover,
+.faq-item:hover {
+    background: var(--surface);
+    border-color: rgba(181, 101, 217, 0.35);
+}
+
+.room-card.featured {
+    background: linear-gradient(160deg, var(--surface), var(--accent-dark));
+}
+
+.field-group input,
+.field-group select,
+.field-group textarea,
+.expense-form-grid input,
+.expense-form-grid select,
+.admin-login-card input {
+    color: var(--text);
+    background: var(--surface);
+    border-color: rgba(118, 106, 128, 0.24);
+}
+
+.mobile-nav {
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-color: rgba(181, 101, 217, 0.2);
+}
+
+.mobile-nav-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.site-footer {
+    margin-top: 2rem;
+    padding-top: 3.5rem;
+    border-top: 1px solid rgba(181, 101, 217, 0.12);
+}
+
+[data-theme="dark"] .nav-menu,
+[data-theme="dark"] .mobile-nav,
+[data-theme="dark"] .facility-icon,
+[data-theme="dark"] .home-card:hover,
+[data-theme="dark"] .home-card:focus-visible,
+[data-theme="dark"] .room-card.featured,
+[data-theme="dark"] .rent-summary-card {
+    background: var(--surface);
+}
+
+@media (max-width: 880px) {
+    .nav-menu {
+        background: var(--surface);
+        border: 1px solid rgba(181, 101, 217, 0.14);
+        gap: 0.15rem;
+    }
+
+    .nav-menu a {
+        border-radius: 14px;
+        padding: 0.72rem 0.85rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .container {
+        width: min(100% - 1.25rem, 1200px);
+    }
+
+    .home-card,
+    .facility-card,
+    .room-card,
+    .testimonial-card,
+    .contact-form-card,
+    .faq-item,
+    .form-wrapper {
+        padding: 1.35rem;
+        border-radius: 20px;
+    }
+
+    .mobile-nav-link {
+        font-size: 0.82rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 @media (min-width: 881px) {
 
     .mobile-nav,
@@ -2500,4 +2697,452 @@ p {
         margin-top: 0.35rem;
         font-size: 0.85rem;
     }
+}
+
+/* Keep footer content on the same centered grid as the page body. */
+.site-footer {
+    margin-top: 0;
+    padding-top: 2rem;
+}
+
+.footer-bottom {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 0 auto;
+}
+
+@media (min-width: 881px) {
+    .back-btn {
+        display: none;
+    }
+}
+
+/* Admin dashboard: compact controls and readable data tables. */
+.admin-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem 1.25rem;
+    align-items: center;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid rgba(181, 101, 217, 0.14);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+}
+
+.admin-controls .admin-tabs {
+    grid-column: 1 / -1;
+    padding: 0.3rem;
+    background: var(--bg);
+    border: 0;
+    border-radius: 14px;
+}
+
+.admin-tab-button {
+    border: 0;
+    border-radius: 11px;
+    padding: 0.7rem 1rem;
+}
+
+.admin-tab-button.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    box-shadow: 0 7px 18px rgba(139, 69, 179, 0.2);
+}
+
+.admin-stats {
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.admin-stats .stat-card {
+    min-width: 130px;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(181, 101, 217, 0.12);
+    border-radius: 16px;
+    background: var(--surface-soft);
+    box-shadow: none;
+}
+
+.admin-stats .stat-card h3 {
+    font-size: 1.45rem;
+}
+
+.admin-stats .stat-card p {
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+}
+
+.admin-control-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+}
+
+.admin-control-actions .btn {
+    padding: 0.75rem 1rem;
+}
+
+.admin-table-container {
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+    border: 1px solid rgba(181, 101, 217, 0.14);
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.admin-table-heading,
+.rent-header,
+.expense-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+.admin-table-heading h3,
+.admin-table-container h3,
+.rent-header h3,
+.expense-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.25rem;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+
+.admin-table-heading p,
+.rent-header p {
+    margin-top: 0.3rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.admin-table-heading .admin-search-field {
+    width: min(320px, 100%);
+}
+
+.admin-search-input,
+.expense-filters input,
+.expense-filters select,
+.receipt-period-card input,
+.admin-table input[type="date"],
+.admin-table input[type="number"],
+.admin-table select {
+    min-height: 42px;
+    color: var(--text);
+    background: var(--surface-soft);
+    border: 1px solid rgba(118, 106, 128, 0.22);
+    border-radius: 11px;
+}
+
+.admin-search-input {
+    padding: 0.65rem 0.9rem;
+}
+
+.admin-search-input::placeholder {
+    color: var(--muted);
+    opacity: 0.8;
+}
+
+.admin-search-input:focus,
+.admin-table input:focus,
+.admin-table select:focus,
+.expense-filters input:focus,
+.expense-filters select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(181, 101, 217, 0.15);
+}
+
+.admin-table-scroll {
+    max-width: 100%;
+    overflow: auto;
+    border: 1px solid rgba(118, 106, 128, 0.14);
+    border-radius: 15px;
+    background: var(--surface);
+    scrollbar-color: rgba(181, 101, 217, 0.45) var(--surface-soft);
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 880px;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 0.85rem 0.9rem;
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.45;
+    border-bottom: 1px solid rgba(118, 106, 128, 0.12);
+}
+
+.admin-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    color: var(--muted);
+    background: var(--accent-dark);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.admin-table tbody tr {
+    background: var(--surface);
+    transition: background 0.16s ease;
+}
+
+.admin-table tbody tr:nth-child(even) {
+    background: var(--surface-soft);
+}
+
+.admin-table tbody tr:hover {
+    background: rgba(181, 101, 217, 0.08);
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-table td:first-child,
+.admin-table th:first-child {
+    min-width: 0;
+}
+
+.admin-table .admin-table-empty {
+    padding: 2.25rem 1rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.applications-table {
+    min-width: 1080px;
+    table-layout: fixed;
+}
+
+.applications-table th:nth-child(1) { width: 15%; }
+.applications-table th:nth-child(2) { width: 17%; }
+.applications-table th:nth-child(3) { width: 13%; }
+.applications-table th:nth-child(4) { width: 12%; }
+.applications-table th:nth-child(5),
+.applications-table th:nth-child(6),
+.applications-table th:nth-child(7) { width: 11%; }
+.applications-table th:nth-child(8) { width: 10%; }
+.applications-table td { overflow-wrap: anywhere; }
+
+.applicant-name,
+.applicant-contact {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.applicant-name strong {
+    font-size: 0.95rem;
+}
+
+.applicant-name span,
+.applicant-contact a {
+    color: var(--muted);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.applicant-contact a:hover {
+    color: var(--primary-dark);
+}
+
+.applications-table .admin-photo-cell {
+    align-items: flex-start;
+    gap: 0.45rem;
+}
+
+.applications-table .admin-photo-preview {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: 1px solid rgba(181, 101, 217, 0.2);
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.applications-table .admin-photo-fallback {
+    min-height: 0;
+    padding: 0.45rem;
+    font-size: 0.72rem;
+    border-radius: 9px;
+}
+
+.applications-table .admin-photo-upload {
+    padding: 0.38rem 0.55rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.applications-table .admin-details summary {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.applicant-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 0.55rem;
+    min-width: 420px;
+    padding: 0.9rem;
+    border: 1px solid rgba(181, 101, 217, 0.12);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.applicant-detail {
+    display: grid;
+    gap: 0.15rem;
+    overflow-wrap: anywhere;
+}
+
+.applicant-detail span {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.applicant-detail strong {
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.admin-details[open] summary {
+    margin-bottom: 0.7rem;
+}
+
+.admin-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.admin-table-note {
+    color: var(--muted);
+}
+
+.rent-summary-card {
+    background: var(--surface-soft);
+    border-color: rgba(181, 101, 217, 0.12);
+    box-shadow: none;
+}
+
+.rent-summary-card h4 {
+    color: var(--primary-dark);
+}
+
+.receipt-month-group th {
+    position: static;
+    color: var(--primary-dark);
+    background: var(--accent-dark);
+}
+
+@media (max-width: 880px) {
+    .admin-controls {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-controls .admin-tabs {
+        grid-column: 1;
+    }
+
+    .admin-control-actions {
+        justify-content: stretch;
+    }
+
+    .admin-control-actions .btn {
+        flex: 1;
+    }
+
+    .admin-table-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .admin-table-heading .admin-search-field {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-controls,
+    .admin-table-container {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .admin-controls .admin-tabs {
+        width: 100%;
+        margin: 0;
+    }
+
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-stats .stat-card {
+        min-width: 0;
+        padding: 0.7rem;
+    }
+
+    .admin-control-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-control-actions .btn {
+        padding: 0.7rem;
+        font-size: 0.82rem;
+    }
+
+    .applications-table {
+        min-width: 980px;
+    }
+
+    .applicant-details-grid {
+        grid-template-columns: 1fr;
+        min-width: 260px;
+    }
+}
+
+[data-theme="dark"] .admin-table thead th {
+    background: var(--accent-dark);
+}
+
+[data-theme="dark"] .admin-table tbody tr,
+[data-theme="dark"] .admin-table tbody tr:nth-child(even) {
+    background: var(--surface);
+}
+
+[data-theme="dark"] .admin-table tbody tr:hover {
+    background: rgba(223, 154, 240, 0.1);
+}
+
+.admin-login-card {
+    color: var(--text);
+    background: var(--surface);
+    border-color: rgba(181, 101, 217, 0.18);
+}
+
+.admin-login-card p {
+    color: var(--muted);
 }
