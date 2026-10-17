@@ -75,7 +75,10 @@
             color: #76545e;
         }
 
-        .page button {
+        .page button,
+        .page .back-admin {
+            display: inline-flex;
+            align-items: center;
             border: 0;
             border-radius: 8px;
             padding: 11px 16px;
@@ -84,9 +87,11 @@
             cursor: pointer;
             font-weight: 700;
             font-size: .95rem;
+            text-decoration: none;
         }
 
-        .page button:hover {
+        .page button:hover,
+        .page .back-admin:hover {
             background: #80314c;
         }
 
@@ -574,6 +579,7 @@
                 <p>Fill in the payment details, then print or save the receipt as PDF.</p>
             </div>
             <div style="display: flex; gap: 10px;">
+                <a class="back-admin" href="admin.html">← Back to Admin</a>
                 <button type="button" id="shareWhatsApp" title="Share receipt on WhatsApp">📱 WhatsApp</button>
                 <button type="button" id="downloadPDF" title="Download receipt as PDF">📥 Download PDF</button>
                 <button type="button" id="printReceipt">🖨️ Print</button>
@@ -673,7 +679,7 @@
                         <td id="otherOutput">₹0</td>
                     </tr>
                     <tr>
-                        <td>Total Amount Due</td>
+                        <td>Total Amount Due For This Month</td>
                         <td id="totalOutput">₹0</td>
                     </tr>
                     <tr class="total">
@@ -848,13 +854,14 @@
             const rent = Number(document.getElementById('pgRent').value || 0), security = Number(document.getElementById('utilities').value || 0), other = Number(document.getElementById('otherCharges').value || 0);
             const totalReceived = Number(document.getElementById('totalReceived').value || 0);
             const total = rent + security + other;
+            const amountDue = Math.max(0, total - totalReceived);
             const lateFeeReceived = Math.min(other, Math.max(0, totalReceived - rent));
             const unpaidLateFee = Math.max(0, other - lateFeeReceived);
             const tenantSecurity = Number(tenantSelect.selectedOptions[0]?.dataset.security || 0);
             const securityBalance = tenantSecurity || security;
             const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
             const additionalCharge = security || other;
-            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(additionalCharge); document.getElementById('totalOutput').textContent = money(total); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
+            document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(additionalCharge); document.getElementById('totalOutput').textContent = money(amountDue); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
             document.getElementById('lateFeeNotice').textContent = unpaidLateFee > 0
                 ? `Late fee of ${money(unpaidLateFee)} was not received and will be adjusted from your security deposit.`
                 : security > 0 ? 'Security deposit payment received. No late fee has been charged.' : 'No late fee has been charged for this payment.';
@@ -990,7 +997,7 @@
             const tenantSecurity = Number(selectedTenant.dataset.security || 0);
             const securityBalance = tenantSecurity || securityFee;
             const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
-            const amountDue = pgRent + securityFee + lateFee;
+            const amountDue = Math.max(0, pgRent + securityFee + lateFee - totalReceived);
             const receipt = {
                 receiptNo: document.getElementById('receiptNo').value.trim(),
                 receiptDate: document.getElementById('receiptDate').value,

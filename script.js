@@ -184,12 +184,11 @@ const expenseComparisonLabel = document.getElementById('expenseComparisonLabel')
 const expenseReceivedTotal = document.getElementById('expenseReceivedTotal');
 const expenseComparedTotal = document.getElementById('expenseComparedTotal');
 const expenseBalanceTotal = document.getElementById('expenseBalanceTotal');
-const adminAccessKey = 'safachatt-admin-access';
-
 let adminApplicationEntriesCache = [];
 let adminReceiptEntriesCache = [];
 let adminContactMessageEntriesCache = [];
 let adminExpenseEntriesCache = [];
+let adminDashboardAccessGranted = false;
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -510,9 +509,7 @@ const unlockAdminAccess = async () => {
             showToast('This Firebase account is not marked as an admin. Run the set-admin command, then sign in again.');
             return;
         }
-        adminLoginOverlay?.classList.add('hidden');
-        document.body.classList.remove('admin-login-hidden');
-        loadAdminData();
+        grantAdminDashboardAccess();
         showToast('Admin access granted.');
         if (adminPasswordInput) adminPasswordInput.value = '';
     } catch (error) {
@@ -529,17 +526,46 @@ const unlockAdminAccess = async () => {
     }
 };
 
+const grantAdminDashboardAccess = () => {
+    if (adminDashboardAccessGranted) return;
+    adminDashboardAccessGranted = true;
+    adminLoginOverlay?.classList.add('hidden');
+    document.body.classList.remove('admin-login-hidden');
+    loadAdminData();
+};
+
+const requireAdminLogin = () => {
+    adminDashboardAccessGranted = false;
+    document.body.classList.add('admin-login-hidden');
+    adminLoginOverlay?.classList.remove('hidden');
+};
+
 const checkAdminAccess = () => {
     if (!adminLoginOverlay) return;
 
-    localStorage.removeItem(adminAccessKey);
-    document.body.classList.add('admin-login-hidden');
-    adminLoginOverlay.classList.remove('hidden');
+    requireAdminLogin();
 
-    if (adminPasswordInput) {
-        adminPasswordInput.value = '';
-        adminPasswordInput.focus();
-    }
+    if (!firebaseAuth) return;
+
+    firebaseAuth.onAuthStateChanged(async (currentUser) => {
+        if (!currentUser || currentUser.isAnonymous) {
+            requireAdminLogin();
+            return;
+        }
+
+        try {
+            const tokenResult = await currentUser.getIdTokenResult(true);
+            if (tokenResult?.claims?.admin === true) {
+                grantAdminDashboardAccess();
+            } else {
+                requireAdminLogin();
+            }
+        } catch (error) {
+            console.error('Unable to verify Firebase admin access:', error);
+            requireAdminLogin();
+            showToast('Unable to verify admin access. Please sign in again.');
+        }
+    });
 };
 
 const createApplicationDetails = (data) => {
