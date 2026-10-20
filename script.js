@@ -135,7 +135,7 @@ const receiptsTableBody = document.getElementById('receiptsTableBody');
 const contactMessagesTableBody = document.getElementById('contactMessagesTableBody');
 const expensesTableBody = document.getElementById('expensesTableBody');
 const adminTotalApplications = document.getElementById('adminTotalApplications');
-const adminTotalReceipts = document.getElementById('adminTotalReceipts');
+const adminActiveStudents = document.getElementById('adminActiveStudents');
 const refreshAdminButton = document.getElementById('refreshAdmin');
 const adminLoginOverlay = document.getElementById('adminLoginOverlay');
 const adminEmailInput = document.getElementById('adminEmail');
@@ -1032,7 +1032,7 @@ const attachDocumentUploadHandlers = () => {
             if (uploaded) {
                 const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput?.value || '');
                 renderApplicationsTable(filteredEntries);
-                updateAdminTotals(filteredEntries, adminReceiptEntriesCache);
+                updateAdminTotals();
             }
 
             target.value = '';
@@ -1072,7 +1072,7 @@ const handleApplicationSearch = () => {
     if (!adminSearchInput) return;
     const filteredEntries = filterApplicationEntries(adminApplicationEntriesCache, adminSearchInput.value);
     renderApplicationsTable(filteredEntries);
-    updateAdminTotals(filteredEntries, adminReceiptEntriesCache);
+    updateAdminTotals();
 };
 
 const renderApplicationsTable = (entries) => {
@@ -1431,9 +1431,12 @@ const exportExpenses = () => {
     URL.revokeObjectURL(url);
 };
 
-const updateAdminTotals = (apps, receipts) => {
-    if (adminTotalApplications) adminTotalApplications.textContent = String(apps.length);
-    if (adminTotalReceipts) adminTotalReceipts.textContent = String(receipts.length);
+const updateAdminTotals = () => {
+    const allStudents = adminApplicationEntriesCache;
+    const activeStudents = allStudents.filter(([, data]) => isActiveResident(data));
+
+    if (adminTotalApplications) adminTotalApplications.textContent = String(allStudents.length);
+    if (adminActiveStudents) adminActiveStudents.textContent = String(activeStudents.length);
 };
 
 const loadAdminData = async () => {
@@ -1481,7 +1484,7 @@ const loadAdminData = async () => {
         renderReceiptsTable(filterReceiptEntries(receiptEntries, receiptSearchInput?.value));
         renderContactMessagesTable(filterContactMessageEntries(contactMessageEntries, contactMessageSearchInput?.value));
         renderExpensesTable(getFilteredExpenseEntries());
-        updateAdminTotals(filteredApplicationEntries, receiptEntries);
+        updateAdminTotals();
         updateRentSummary(applicationEntries);
         renderRentDueTable(applicationEntries);
     } catch (error) {
