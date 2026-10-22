@@ -792,7 +792,26 @@
                 data?.security,
                 data?.deposit
             ];
-            return values.map(Number).find(value => Number.isFinite(value) && value > 0) || 0;
+            for (const value of values) {
+                if (value === null || value === undefined || value === '') continue;
+                const amount = Number(value);
+                if (Number.isFinite(amount) && amount >= 0) return amount;
+            }
+            return 0;
+        };
+        const getTenantDueDateKey = data => {
+            const moveInDate = parseDate(data?.moveInDate);
+            let dueDate = moveInDate;
+            if (moveInDate) {
+                const today = new Date();
+                dueDate = new Date(today.getFullYear(), today.getMonth(), moveInDate.getDate());
+                if (dueDate.getMonth() !== today.getMonth()) dueDate.setDate(0);
+            } else {
+                dueDate = parseDate(data?.rentDueDate);
+            }
+            return dueDate
+                ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`
+                : '';
         };
         const initializeReceiptFirebase = () => {
             if (typeof firebase === 'undefined') return false;
@@ -825,6 +844,8 @@
                     option.dataset.roomBed = room;
                     option.dataset.rent = data.amountToPay ?? data.monthlyRent ?? data.rent ?? '';
                     option.dataset.security = String(getTenantSecurityAmount(data));
+                    option.dataset.dueDateKey = getTenantDueDateKey(data);
+                    option.dataset.lateFeeDeductedForDueDate = data.lateFeeDeductedForDueDate || '';
                     tenantSelect.add(option);
                 });
             } catch (error) {
@@ -859,14 +880,16 @@
             const unpaidLateFee = Math.max(0, other - lateFeeReceived);
             const tenantSecurity = Number(tenantSelect.selectedOptions[0]?.dataset.security || 0);
             const securityBalance = tenantSecurity || security;
-            const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
+            const selectedTenant = tenantSelect.selectedOptions[0];
+            const feeAlreadyDeducted = selectedTenant?.dataset.dueDateKey
+                && selectedTenant.dataset.lateFeeDeductedForDueDate === selectedTenant.dataset.dueDateKey;
+            const remainingSecurity = Math.max(0, securityBalance - (feeAlreadyDeducted ? 0 : unpaidLateFee));
             const additionalCharge = security || other;
             document.getElementById('rentOutput').textContent = money(rent); document.getElementById('otherOutput').textContent = money(additionalCharge); document.getElementById('totalOutput').textContent = money(amountDue); document.getElementById('totalReceivedOutput').textContent = money(totalReceived); document.getElementById('remainingSecurityOutput').textContent = money(remainingSecurity); document.getElementById('amountWords').textContent = amountInWords(totalReceived);
             document.getElementById('lateFeeNotice').textContent = unpaidLateFee > 0
                 ? `Late fee of ${money(unpaidLateFee)} was not received and will be adjusted from your security deposit.`
                 : security > 0 ? 'Security deposit payment received. No late fee has been charged.' : 'No late fee has been charged for this payment.';
             const status = document.getElementById('paymentStatus'); document.querySelector('[data-output="paymentStatus"]').classList.toggle('paid', status.value === 'PAID');
-            const selectedTenant = tenantSelect.selectedOptions[0];
             document.querySelectorAll('[data-output="tenantName"]').forEach(output => { output.textContent = selectedTenant?.dataset.tenantName || '—'; });
         };
         const getReceiptFileName = () => {
@@ -994,33 +1017,62 @@
             const totalReceived = Number(document.getElementById('totalReceived').value || 0);
             const lateFeeReceived = Math.min(lateFee, Math.max(0, totalReceived - pgRent));
             const unpaidLateFee = Math.max(0, lateFee - lateFeeReceived);
-            const tenantSecurity = Number(selectedTenant.dataset.security || 0);
-            const securityBalance = tenantSecurity || securityFee;
-            const remainingSecurity = Math.max(0, securityBalance - unpaidLateFee);
             const amountDue = Math.max(0, pgRent + securityFee + lateFee - totalReceived);
-            const receipt = {
-                receiptNo: document.getElementById('receiptNo').value.trim(),
-                receiptDate: document.getElementById('receiptDate').value,
-                tenantId: tenantSelect.value,
-                tenantName: selectedTenant.dataset.tenantName,
-                roomBed: document.getElementById('roomBed').value.trim(),
-                paymentFor,
-                paymentMethod: document.getElementById('paymentMethod').value,
-                paymentStatus: document.getElementById('paymentStatus').value,
-                pgRent, securityFee, lateFee, amountDue, totalAmount: totalReceived, totalReceived,
-                unpaidLateFee, remainingSecurity,
-                transactionRef: document.getElementById('transactionRef').value.trim(),
-                paymentDate: document.getElementById('paymentDate').value,
-                receivedBy: document.getElementById('receivedBy').value.trim(),
-                createdAt: firebase.database.ServerValue.TIMESTAMP
-            };
             try {
+                const applicationRef = receiptDatabase.ref(`applications/${tenantSelect.value}`);
+                const applicationSnapshot = await applicationRef.once('value');
+                const tenantData = applicationSnapshot.val();
+                if (!tenantData) throw new Error('The selected tenant record could not be found.');
+
+                const securityBalance = getTenantSecurityAmount(tenantData) || securityFee;
+                const dueDateKey = selectedTenant.dataset.dueDateKey;
+                const alreadyDeducted = dueDateKey
+                    && tenantData.lateFeeDeductedForDueDate === dueDateKey;
+                const lateFeeDeducted = unpaidLateFee > 0 && !alreadyDeducted
+                    ? Math.min(securityBalance, unpaidLateFee)
+                    : 0;
+                const remainingSecurity = Math.max(0, securityBalance - lateFeeDeducted);
+                const receipt = {
+                    receiptNo: document.getElementById('receiptNo').value.trim(),
+                    receiptDate: document.getElementById('receiptDate').value,
+                    tenantId: tenantSelect.value,
+                    tenantName: selectedTenant.dataset.tenantName,
+                    roomBed: document.getElementById('roomBed').value.trim(),
+                    paymentFor,
+                    paymentMethod: document.getElementById('paymentMethod').value,
+                    paymentStatus: document.getElementById('paymentStatus').value,
+                    pgRent, securityFee, lateFee, amountDue, totalAmount: totalReceived, totalReceived,
+                    unpaidLateFee, lateFeeDeducted, remainingSecurity,
+                    transactionRef: document.getElementById('transactionRef').value.trim(),
+                    paymentDate: document.getElementById('paymentDate').value,
+                    receivedBy: document.getElementById('receivedBy').value.trim(),
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                };
                 const receiptKey = receiptDatabase.ref('receipts').push().key;
+                const applicationUpdates = {
+                    totalReceived,
+                    paymentReceived: receipt.paymentStatus === 'PAID'
+                };
+                if (unpaidLateFee > 0 && !alreadyDeducted && dueDateKey) {
+                    Object.assign(applicationUpdates, {
+                        securityFee: remainingSecurity,
+                        lateFeeDeducted: lateFeeDeducted,
+                        lateFeeDeductedAt: new Date().toISOString(),
+                        lateFeeDeductedForDueDate: dueDateKey
+                    });
+                }
                 await receiptDatabase.ref().update({
                     [`receipts/${receiptKey}`]: receipt,
-                    [`applications/${tenantSelect.value}/totalReceived`]: totalReceived,
-                    [`applications/${tenantSelect.value}/paymentReceived`]: receipt.paymentStatus === 'PAID'
+                    ...Object.fromEntries(Object.entries(applicationUpdates).map(([key, value]) => [
+                        `applications/${tenantSelect.value}/${key}`,
+                        value
+                    ]))
                 });
+                if (unpaidLateFee > 0 && !alreadyDeducted && dueDateKey) {
+                    selectedTenant.dataset.security = String(remainingSecurity);
+                    selectedTenant.dataset.lateFeeDeductedForDueDate = dueDateKey;
+                    update();
+                }
                 setSaveStatus('Receipt saved to Firebase successfully.', 'success');
             } catch (error) {
                 console.error('Unable to save receipt:', error);
