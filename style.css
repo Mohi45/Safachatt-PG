@@ -112,6 +112,11 @@ p {
     border-bottom: 1px solid rgba(255, 255, 255, 0.45);
 }
 
+.site-banner img {
+    width: 100%;
+    height: auto;
+}
+
 .header-inner {
     display: flex;
     align-items: center;
