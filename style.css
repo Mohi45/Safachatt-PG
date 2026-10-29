@@ -3242,6 +3242,7 @@ body {
 }
 
 .kitchen-attention,
+.kitchen-schedule-section,
 .kitchen-inventory-section,
 .kitchen-history-section {
     display: grid;
@@ -3305,6 +3306,59 @@ body {
     padding: 0.7rem 0;
     color: var(--muted);
     font-size: 0.88rem;
+}
+
+.kitchen-schedule-section {
+    padding: 1.15rem;
+    border: 1px solid rgba(181, 101, 217, 0.13);
+    border-radius: 18px;
+    background: var(--surface-soft);
+}
+
+.kitchen-schedule-runs {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.kitchen-schedule-run {
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(118, 106, 128, 0.13);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.kitchen-schedule-run summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 1rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.kitchen-schedule-run summary strong {
+    color: var(--text);
+}
+
+.kitchen-schedule-warning {
+    color: #b33956;
+    font-weight: 750;
+}
+
+.kitchen-schedule-run ul {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.7rem 0 0;
+    padding-left: 1.2rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.kitchen-schedule-success {
+    margin: 0.7rem 0 0;
+    color: #24784c;
+    font-size: 0.82rem;
 }
 
 .kitchen-item-form {

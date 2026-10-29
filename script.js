@@ -191,6 +191,7 @@ let adminExpenseEntriesCache = [];
 let adminDashboardAccessGranted = false;
 let kitchenItemEntriesCache = [];
 let kitchenTransactionEntriesCache = [];
+let kitchenScheduledRunEntriesCache = [];
 let kitchenMovementItemId = '';
 let kitchenMovementType = '';
 let kitchenMovementSubmitting = false;
@@ -1454,6 +1455,7 @@ const kitchenHistorySearchInput = document.getElementById('kitchenHistorySearch'
 const kitchenHistoryTypeInput = document.getElementById('kitchenHistoryType');
 const kitchenHistoryFromInput = document.getElementById('kitchenHistoryFrom');
 const kitchenHistoryToInput = document.getElementById('kitchenHistoryTo');
+const kitchenScheduleRuns = document.getElementById('kitchenScheduleRuns');
 const kitchenMovementModal = document.getElementById('kitchenMovementModal');
 const kitchenMovementForm = document.getElementById('kitchenMovementForm');
 const kitchenMovementTitle = document.getElementById('kitchenMovementTitle');
@@ -1614,10 +1616,37 @@ const renderKitchenHistory = () => {
     }).join('');
 };
 
+const renderKitchenScheduleRuns = () => {
+    if (!kitchenScheduleRuns) return;
+    const runs = [...kitchenScheduledRunEntriesCache]
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+        .slice(0, 7);
+    if (!runs.length) {
+        kitchenScheduleRuns.innerHTML = '<p class="kitchen-empty">The first automatic deduction run is scheduled for 00:05 IST.</p>';
+        return;
+    }
+    kitchenScheduleRuns.innerHTML = runs.map(([date, run]) => {
+        const entries = Object.values(run?.entries || {});
+        const deducted = entries.filter((entry) => entry.status === 'deducted').length;
+        const skipped = entries.filter((entry) => entry.status === 'skipped');
+        return `<details class="kitchen-schedule-run">
+            <summary>
+                <strong>${sanitizeText(date)}</strong>
+                <span>${deducted} deducted</span>
+                <span class="${skipped.length ? 'kitchen-schedule-warning' : ''}">${skipped.length} skipped</span>
+            </summary>
+            ${skipped.length ? `<ul>${skipped.map((entry) =>
+                `<li><strong>${sanitizeText(entry.itemName || 'Inventory item')}:</strong> ${sanitizeText(entry.reason || 'Deduction skipped.')}</li>`
+            ).join('')}</ul>` : '<p class="kitchen-schedule-success">All scheduled deductions were completed.</p>'}
+        </details>`;
+    }).join('');
+};
+
 const renderKitchenManagement = () => {
     renderKitchenSummary();
     renderKitchenInventory();
     renderKitchenHistory();
+    renderKitchenScheduleRuns();
 };
 
 const resetKitchenItemForm = () => {
@@ -1867,6 +1896,7 @@ const loadKitchenData = (snapshot) => {
     const data = snapshot?.val() || {};
     kitchenItemEntriesCache = Object.entries(data.items || {});
     kitchenTransactionEntriesCache = Object.entries(data.transactions || {});
+    kitchenScheduledRunEntriesCache = Object.entries(data.scheduledDeductions || {});
     renderKitchenManagement();
 };
 

@@ -203,6 +203,39 @@ kitchenManagement/
       └── timestamp, reason, admin
 ```
 
+### Scheduled Kitchen Consumption
+
+The Firebase scheduled function runs every day at **00:05 India Standard Time**. Daily consumption is recorded every day; weekly consumption is recorded on Mondays. It matches existing inventory items by name (including common spelling alternatives) and converts between KG/Gram or Litre/Millilitre when needed. Missing items are created with zero stock. If stock is insufficient or the item's unit is incompatible, the deduction is skipped rather than making stock negative; the shortage is recorded and shown in Kitchen Management.
+
+| Item | Scheduled deduction |
+| --- | --- |
+| Atta | 4 KG daily |
+| Rice | 800 Gram daily |
+| Sarso Oil | 200 Millilitre daily |
+| Refined Oil | 1 Litre weekly |
+| Sugar | 400 Gram daily |
+| Dal | 1.5 KG weekly |
+| Macroni | 1 KG weekly |
+| Poha | 1 KG weekly |
+| Kale Chane | 1 KG weekly |
+| Jave | 1 KG weekly |
+| Mungfali | 150 Gram weekly |
+| Haldi | 15 Gram daily |
+| Mirch | 15 Gram daily |
+| Jira | 25 Gram daily |
+| ChaiPatti | 30 Gram daily |
+
+Deploy the function to the same Firebase project used by the dashboard. Scheduled Cloud Functions require the Blaze (pay-as-you-go) plan and Firebase CLI:
+
+```bash
+npm install -g firebase-tools
+firebase login
+npm --prefix functions install
+firebase deploy --project safachattpg --only database,functions:scheduledKitchenDeductions
+```
+
+The first scheduled run occurs at the next 00:05 IST after deployment. Check **Firebase Console → Functions → Logs** for run failures. The dashboard's **Automatic deductions** section shows recent completed runs and any skipped shortages. Each date is recorded atomically with its stock changes, so retries do not deduct twice.
+
 ## Testing
 
 1. Open your application form page (`apply.html`)
