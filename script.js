@@ -189,6 +189,11 @@ let adminReceiptEntriesCache = [];
 let adminContactMessageEntriesCache = [];
 let adminExpenseEntriesCache = [];
 let adminDashboardAccessGranted = false;
+let kitchenItemEntriesCache = [];
+let kitchenTransactionEntriesCache = [];
+let kitchenMovementItemId = '';
+let kitchenMovementType = '';
+let kitchenMovementSubmitting = false;
 
 const typedWords = ['comfort', 'security', 'harmony', 'community'];
 let typedIndex = 0;
@@ -1431,6 +1436,440 @@ const exportExpenses = () => {
     URL.revokeObjectURL(url);
 };
 
+const kitchenItemForm = document.getElementById('kitchenItemForm');
+const kitchenItemIdInput = document.getElementById('kitchenItemId');
+const kitchenItemNameInput = document.getElementById('kitchenItemName');
+const kitchenItemUnitInput = document.getElementById('kitchenItemUnit');
+const kitchenItemInitialStockInput = document.getElementById('kitchenItemInitialStock');
+const kitchenItemMinimumInput = document.getElementById('kitchenItemMinimum');
+const kitchenItemSubmitButton = document.getElementById('kitchenItemSubmit');
+const kitchenCancelEditButton = document.getElementById('kitchenCancelEdit');
+const kitchenInitialStockGroup = document.getElementById('kitchenInitialStockGroup');
+const kitchenInventoryBody = document.getElementById('kitchenInventoryBody');
+const kitchenAttentionList = document.getElementById('kitchenAttentionList');
+const kitchenStatusFilter = document.getElementById('kitchenStatusFilter');
+const kitchenSearchInput = document.getElementById('kitchenSearch');
+const kitchenHistoryBody = document.getElementById('kitchenHistoryBody');
+const kitchenHistorySearchInput = document.getElementById('kitchenHistorySearch');
+const kitchenHistoryTypeInput = document.getElementById('kitchenHistoryType');
+const kitchenHistoryFromInput = document.getElementById('kitchenHistoryFrom');
+const kitchenHistoryToInput = document.getElementById('kitchenHistoryTo');
+const kitchenMovementModal = document.getElementById('kitchenMovementModal');
+const kitchenMovementForm = document.getElementById('kitchenMovementForm');
+const kitchenMovementTitle = document.getElementById('kitchenMovementTitle');
+const kitchenMovementDescription = document.getElementById('kitchenMovementDescription');
+const kitchenMovementItemInput = document.getElementById('kitchenMovementItem');
+const kitchenMovementQuantityInput = document.getElementById('kitchenMovementQuantity');
+const kitchenMovementUnitInput = document.getElementById('kitchenMovementUnit');
+const kitchenMovementDateInput = document.getElementById('kitchenMovementDate');
+const kitchenMovementReasonLabel = document.getElementById('kitchenMovementReasonLabel');
+const kitchenMovementReasonInput = document.getElementById('kitchenMovementReason');
+const kitchenMovementSubmitButton = document.getElementById('kitchenMovementSubmit');
+
+const isKitchenPermissionDenied = (error) =>
+    String(error?.code || error?.message || '').toLowerCase().includes('permission_denied');
+
+const showKitchenPermissionError = () => {
+    showToast('Firebase denied kitchen access. Publish the latest database.rules.json in Realtime Database → Rules, then refresh.');
+};
+
+const getKitchenItemStock = (item) => {
+    const stock = Number(item?.stock);
+    return Number.isFinite(stock) && stock >= 0 ? stock : 0;
+};
+
+const getKitchenItemStatus = (item) => {
+    const stock = getKitchenItemStock(item);
+    if (stock === 0) return { label: 'Out of Stock', className: 'out' };
+    if (stock <= Number(item?.minimumStock || 0)) return { label: 'Low Stock', className: 'low' };
+    return { label: 'Available', className: 'available' };
+};
+
+const formatKitchenQuantity = (quantity) => Number(quantity || 0).toLocaleString('en-IN', {
+    maximumFractionDigits: 3
+});
+
+const getKitchenItemEntries = () => kitchenItemEntriesCache;
+
+const getFilteredKitchenItemEntries = () => {
+    const query = String(kitchenSearchInput?.value || '').trim().toLowerCase();
+    const status = kitchenStatusFilter?.value || '';
+    return getKitchenItemEntries().filter(([, item]) => {
+        const itemStatus = getKitchenItemStatus(item);
+        const searchable = [item?.name, item?.unit].map((value) => String(value || '').toLowerCase()).join(' ');
+        return (!query || searchable.includes(query)) &&
+            (!status || itemStatus.className === status);
+    });
+};
+
+const getFilteredKitchenTransactionEntries = () => {
+    const query = String(kitchenHistorySearchInput?.value || '').trim().toLowerCase();
+    const type = kitchenHistoryTypeInput?.value || '';
+    const from = kitchenHistoryFromInput?.value || '';
+    const to = kitchenHistoryToInput?.value || '';
+    return kitchenTransactionEntriesCache.filter(([, transaction]) => {
+        const itemName = String(transaction?.itemName || '').toLowerCase();
+        const parsedDate = new Date(transaction?.timestamp || '');
+        const date = Number.isNaN(parsedDate.getTime()) ? '' :
+            `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
+        return (!query || itemName.includes(query)) &&
+            (!type || transaction?.type === type) &&
+            (!from || date >= from) &&
+            (!to || date <= to);
+    });
+};
+
+const renderKitchenSummary = () => {
+    const items = getKitchenItemEntries().map(([, item]) => item);
+    const lowStock = items.filter((item) => getKitchenItemStatus(item).className === 'low');
+    const outOfStock = items.filter((item) => getKitchenItemStatus(item).className === 'out');
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recentTransactions = kitchenTransactionEntriesCache
+        .map(([, transaction]) => transaction)
+        .filter((transaction) => {
+            const timestamp = new Date(transaction?.timestamp || '').getTime();
+            return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo;
+        });
+    const added = recentTransactions.filter((transaction) => transaction.type === 'Added')
+        .reduce((sum, transaction) => sum + Number(transaction.quantity || 0), 0);
+    const deducted = recentTransactions.filter((transaction) => transaction.type === 'Subtracted')
+        .reduce((sum, transaction) => sum + Number(transaction.quantity || 0), 0);
+    const setValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = String(value);
+    };
+
+    setValue('kitchenTotalItems', items.length);
+    setValue('kitchenTotalStock', formatKitchenQuantity(items.reduce((sum, item) => sum + getKitchenItemStock(item), 0)));
+    setValue('kitchenLowStock', lowStock.length);
+    setValue('kitchenOutOfStock', outOfStock.length);
+    setValue('kitchenRecentAdded', formatKitchenQuantity(added));
+    setValue('kitchenRecentDeducted', formatKitchenQuantity(deducted));
+    setValue('kitchenAttentionCount', `${lowStock.length + outOfStock.length} item${lowStock.length + outOfStock.length === 1 ? '' : 's'}`);
+
+    if (!kitchenAttentionList) return;
+    const attentionItems = [...outOfStock, ...lowStock]
+        .sort((a, b) => getKitchenItemStock(a) - getKitchenItemStock(b));
+    kitchenAttentionList.innerHTML = attentionItems.length
+        ? attentionItems.map((item) => {
+            const itemStatus = getKitchenItemStatus(item);
+            return `<div class="kitchen-attention-item">
+                <span class="kitchen-status-badge ${itemStatus.className}">${itemStatus.label}</span>
+                <strong>${sanitizeText(item.name || 'Unnamed item')}</strong>
+                <span>${formatKitchenQuantity(getKitchenItemStock(item))} ${sanitizeText(item.unit || '')} available</span>
+                <span>Minimum ${formatKitchenQuantity(item.minimumStock)} ${sanitizeText(item.unit || '')}</span>
+            </div>`;
+        }).join('')
+        : '<p class="kitchen-empty">No items need replenishment.</p>';
+};
+
+const renderKitchenInventory = () => {
+    if (!kitchenInventoryBody) return;
+    const entries = getFilteredKitchenItemEntries()
+        .sort(([, a], [, b]) => String(a?.name || '').localeCompare(String(b?.name || '')));
+    if (!entries.length) {
+        kitchenInventoryBody.innerHTML = '<tr><td colspan="7" class="admin-table-empty">No inventory items match these filters.</td></tr>';
+        return;
+    }
+    kitchenInventoryBody.innerHTML = entries.map(([id, item]) => {
+        const status = getKitchenItemStatus(item);
+        return `<tr>
+            <td><strong>${sanitizeText(item?.name || '-')}</strong></td>
+            <td><strong>${formatKitchenQuantity(getKitchenItemStock(item))}</strong></td>
+            <td>${sanitizeText(item?.unit || '-')}</td>
+            <td>${formatKitchenQuantity(item?.minimumStock)}</td>
+            <td><span class="kitchen-status-badge ${status.className}">${status.label}</span></td>
+            <td>${sanitizeText(formatSubmittedAt(item?.updatedAt))}</td>
+            <td class="kitchen-row-actions">
+                <button type="button" class="kitchen-action-button" data-kitchen-add="${sanitizeText(id)}">Add stock</button>
+                <button type="button" class="kitchen-action-button" data-kitchen-subtract="${sanitizeText(id)}">Subtract</button>
+                <button type="button" class="kitchen-action-button" data-kitchen-edit="${sanitizeText(id)}">Edit</button>
+                <button type="button" class="kitchen-action-button danger" data-kitchen-delete="${sanitizeText(id)}">Delete</button>
+            </td>
+        </tr>`;
+    }).join('');
+};
+
+const renderKitchenHistory = () => {
+    if (!kitchenHistoryBody) return;
+    const entries = getFilteredKitchenTransactionEntries()
+        .sort(([, a], [, b]) => new Date(b?.timestamp || 0) - new Date(a?.timestamp || 0));
+    if (!entries.length) {
+        kitchenHistoryBody.innerHTML = '<tr><td colspan="8" class="admin-table-empty">No stock movements match these filters.</td></tr>';
+        return;
+    }
+    kitchenHistoryBody.innerHTML = entries.map(([, transaction]) => {
+        const quantity = Number(transaction?.quantity || 0);
+        const change = transaction?.type === 'Subtracted' ? `−${formatKitchenQuantity(quantity)}` : `+${formatKitchenQuantity(quantity)}`;
+        return `<tr>
+            <td>${sanitizeText(formatSubmittedAt(transaction?.timestamp))}</td>
+            <td><strong>${sanitizeText(transaction?.itemName || '-')}</strong></td>
+            <td><span class="kitchen-status-badge ${transaction?.type === 'Subtracted' ? 'out' : transaction?.type === 'Adjustment' ? 'low' : 'available'}">${sanitizeText(transaction?.type || '-')}</span></td>
+            <td>${formatKitchenQuantity(transaction?.previousQuantity)} ${sanitizeText(transaction?.unit || '')}</td>
+            <td>${change} ${sanitizeText(transaction?.unit || '')}</td>
+            <td><strong>${formatKitchenQuantity(transaction?.balance)} ${sanitizeText(transaction?.unit || '')}</strong></td>
+            <td>${sanitizeText(transaction?.reason || '-')}</td>
+            <td>${sanitizeText(transaction?.admin || '-')}</td>
+        </tr>`;
+    }).join('');
+};
+
+const renderKitchenManagement = () => {
+    renderKitchenSummary();
+    renderKitchenInventory();
+    renderKitchenHistory();
+};
+
+const resetKitchenItemForm = () => {
+    kitchenItemForm?.reset();
+    if (kitchenItemIdInput) kitchenItemIdInput.value = '';
+    kitchenItemUnitInput?.querySelectorAll('[data-existing-unit]').forEach((option) => option.remove());
+    if (kitchenItemInitialStockInput) kitchenItemInitialStockInput.value = '0';
+    if (kitchenItemMinimumInput) kitchenItemMinimumInput.value = '0';
+    if (kitchenItemSubmitButton) kitchenItemSubmitButton.textContent = 'Add inventory item';
+    kitchenInitialStockGroup?.classList.remove('hidden');
+    kitchenCancelEditButton?.classList.add('hidden');
+};
+
+const editKitchenItem = (itemId) => {
+    const entry = kitchenItemEntriesCache.find(([id]) => id === itemId);
+    if (!entry) return;
+    const [, item] = entry;
+    kitchenItemIdInput.value = itemId;
+    kitchenItemNameInput.value = item.name || '';
+    const existingUnit = String(item.unit || '');
+    if (existingUnit && !Array.from(kitchenItemUnitInput.options).some((option) => option.value === existingUnit)) {
+        const option = document.createElement('option');
+        option.value = existingUnit;
+        option.textContent = existingUnit;
+        option.dataset.existingUnit = 'true';
+        kitchenItemUnitInput.append(option);
+    }
+    kitchenItemUnitInput.value = existingUnit;
+    kitchenItemMinimumInput.value = String(item.minimumStock ?? 0);
+    kitchenItemSubmitButton.textContent = 'Update inventory item';
+    kitchenInitialStockGroup.classList.add('hidden');
+    kitchenCancelEditButton.classList.remove('hidden');
+    kitchenItemNameInput.focus();
+};
+
+const isKitchenDuplicateName = (items, name, exceptId) => Object.entries(items || {}).some(([id, item]) =>
+    id !== exceptId && String(item?.name || '').trim().toLocaleLowerCase() === name.toLocaleLowerCase());
+
+const saveKitchenItem = async (event) => {
+    event.preventDefault();
+    if (!firebaseDatabase || !firebaseAuth?.currentUser || !kitchenItemForm?.reportValidity() || kitchenMovementSubmitting) return;
+    const name = kitchenItemNameInput.value.trim();
+    const unit = kitchenItemUnitInput.value.trim();
+    const minimumStock = Number(Number(kitchenItemMinimumInput.value).toFixed(3));
+    const isEditing = Boolean(kitchenItemIdInput.value);
+    const initialStock = isEditing ? 0 : Number(Number(kitchenItemInitialStockInput.value).toFixed(3));
+    if (!name || !unit || !Number.isFinite(minimumStock) || minimumStock < 0 ||
+        !Number.isFinite(initialStock) || initialStock < 0) {
+        showToast('Enter valid item details and non-negative stock quantities.');
+        return;
+    }
+    const itemId = kitchenItemIdInput.value || firebaseDatabase.ref('kitchenManagement/items').push().key;
+    const transactionId = !isEditing && initialStock > 0 ? firebaseDatabase.ref('kitchenManagement/transactions').push().key : '';
+    const now = new Date().toISOString();
+    const adminUser = firebaseAuth.currentUser;
+    const itemData = { name, unit, minimumStock, updatedAt: now };
+    kitchenMovementSubmitting = true;
+    kitchenItemSubmitButton.disabled = true;
+    kitchenItemCancelButtonState(true);
+    try {
+        const result = await firebaseDatabase.ref('kitchenManagement').transaction((currentData) => {
+            const data = currentData || { items: {}, transactions: {} };
+            data.items = data.items || {};
+            data.transactions = data.transactions || {};
+            if (isKitchenDuplicateName(data.items, name, itemId)) return;
+            if (isEditing) {
+                if (!data.items[itemId]) return;
+                data.items[itemId] = { ...data.items[itemId], ...itemData };
+            } else {
+                if (data.items[itemId]) return;
+                data.items[itemId] = {
+                    ...itemData,
+                    stock: initialStock,
+                    createdAt: now
+                };
+                if (transactionId) {
+                    data.transactions[transactionId] = {
+                        itemId,
+                        itemName: name,
+                        type: 'Adjustment',
+                        previousQuantity: 0,
+                        quantity: initialStock,
+                        balance: initialStock,
+                        unit,
+                        timestamp: now,
+                        reason: 'Starting inventory',
+                        admin: adminUser.email || adminUser.uid
+                    };
+                }
+            }
+            return data;
+        }, undefined, false);
+        if (!result.committed) {
+            showToast('Inventory was not saved. Check for a duplicate name or refresh and try again.');
+            return;
+        }
+        resetKitchenItemForm();
+        await loadAdminData();
+        showToast(isEditing ? 'Inventory item updated.' : 'Inventory item added.');
+    } catch (error) {
+        console.error('Error saving kitchen inventory item:', error);
+        if (isKitchenPermissionDenied(error)) showKitchenPermissionError();
+        else showToast('Unable to save the inventory item.');
+    } finally {
+        kitchenMovementSubmitting = false;
+        kitchenItemCancelButtonState(false);
+    }
+};
+
+const kitchenItemCancelButtonState = (disabled) => {
+    if (kitchenItemSubmitButton) kitchenItemSubmitButton.disabled = disabled;
+    if (kitchenCancelEditButton) kitchenCancelEditButton.disabled = disabled;
+};
+
+const deleteKitchenItem = async (itemId) => {
+    const entry = kitchenItemEntriesCache.find(([id]) => id === itemId);
+    if (!firebaseDatabase || !firebaseAuth?.currentUser || !entry) return;
+    const [, item] = entry;
+    if (!window.confirm(`Delete ${item.name}? Historical stock transactions will be retained.`)) return;
+    try {
+        const result = await firebaseDatabase.ref('kitchenManagement').transaction((currentData) => {
+            if (!currentData?.items?.[itemId]) return;
+            delete currentData.items[itemId];
+            return currentData;
+        }, undefined, false);
+        if (!result.committed) {
+            showToast('Inventory item was not deleted. Refresh and try again.');
+            return;
+        }
+        await loadAdminData();
+        showToast('Inventory item deleted. Transaction history was retained.');
+    } catch (error) {
+        console.error('Error deleting kitchen inventory item:', error);
+        if (isKitchenPermissionDenied(error)) showKitchenPermissionError();
+        else showToast('Unable to delete the inventory item.');
+    }
+};
+
+const openKitchenMovementModal = (itemId, type) => {
+    if (kitchenMovementSubmitting) return;
+    const entry = kitchenItemEntriesCache.find(([id]) => id === itemId);
+    if (!entry) return;
+    const [, item] = entry;
+    kitchenMovementItemId = itemId;
+    kitchenMovementType = type;
+    kitchenMovementForm.reset();
+    kitchenMovementItemInput.value = item.name || '';
+    kitchenMovementUnitInput.value = item.unit || '';
+    kitchenMovementDateInput.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    kitchenMovementTitle.textContent = type === 'Added' ? 'Add stock' : 'Subtract stock';
+    kitchenMovementDescription.textContent = type === 'Added'
+        ? 'Record new stock received for this item.'
+        : 'Record consumption, wastage, or another stock deduction.';
+    kitchenMovementReasonLabel.textContent = type === 'Added' ? 'Remarks' : 'Reason *';
+    kitchenMovementReasonInput.required = type === 'Subtracted';
+    kitchenMovementReasonInput.placeholder = type === 'Added' ? 'Optional remarks' : 'e.g. Daily kitchen consumption';
+    kitchenMovementQuantityInput.max = type === 'Subtracted' ? String(getKitchenItemStock(item)) : '';
+    kitchenMovementSubmitButton.textContent = type === 'Added' ? 'Add stock' : 'Subtract stock';
+    kitchenMovementModal.classList.add('open');
+    kitchenMovementModal.setAttribute('aria-hidden', 'false');
+    kitchenMovementQuantityInput.focus();
+};
+
+const closeKitchenMovementModal = (force = false) => {
+    if (kitchenMovementSubmitting && !force) return;
+    kitchenMovementModal?.classList.remove('open');
+    kitchenMovementModal?.setAttribute('aria-hidden', 'true');
+    kitchenMovementItemId = '';
+    kitchenMovementType = '';
+};
+
+const saveKitchenMovement = async (event) => {
+    event.preventDefault();
+    if (!firebaseDatabase || !firebaseAuth?.currentUser || !kitchenMovementForm?.reportValidity() || kitchenMovementSubmitting) return;
+    const quantity = Number(Number(kitchenMovementQuantityInput.value).toFixed(3));
+    const selectedDate = new Date(kitchenMovementDateInput.value);
+    const reason = kitchenMovementReasonInput.value.trim();
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(selectedDate.getTime()) ||
+        (kitchenMovementType === 'Subtracted' && !reason)) {
+        showToast('Enter a valid quantity, date, and deduction reason.');
+        return;
+    }
+    const movementId = firebaseDatabase.ref('kitchenManagement/transactions').push().key;
+    const now = new Date().toISOString();
+    const timestamp = selectedDate.toISOString();
+    const adminUser = firebaseAuth.currentUser;
+    const itemId = kitchenMovementItemId;
+    const movementType = kitchenMovementType;
+    const itemName = kitchenMovementItemInput.value;
+    let failureReason = '';
+    kitchenMovementSubmitting = true;
+    kitchenMovementSubmitButton.disabled = true;
+    try {
+        const result = await firebaseDatabase.ref('kitchenManagement').transaction((currentData) => {
+            const data = currentData || { items: {}, transactions: {} };
+            data.items = data.items || {};
+            data.transactions = data.transactions || {};
+            const item = data.items[itemId];
+            if (!item) {
+                failureReason = 'The inventory item no longer exists. Refresh and try again.';
+                return;
+            }
+            const previousQuantity = Number(getKitchenItemStock(item).toFixed(3));
+            if (movementType === 'Subtracted' && quantity > previousQuantity) {
+                failureReason = `Not enough stock. Only ${formatKitchenQuantity(previousQuantity)} ${item.unit || ''} is available.`;
+                return;
+            }
+            const balance = Number((movementType === 'Added' ? previousQuantity + quantity : previousQuantity - quantity).toFixed(3));
+            if (!Number.isFinite(balance) || balance < 0) {
+                failureReason = 'This movement would make stock negative.';
+                return;
+            }
+            item.stock = balance;
+            item.updatedAt = now;
+            data.transactions[movementId] = {
+                itemId,
+                itemName: item.name || itemName,
+                type: movementType,
+                previousQuantity,
+                quantity,
+                balance,
+                unit: item.unit || '',
+                timestamp,
+                reason,
+                admin: adminUser.email || adminUser.uid
+            };
+            return data;
+        }, undefined, false);
+        if (!result.committed) {
+            showToast(failureReason || 'Stock was not updated. Refresh and try again.');
+            return;
+        }
+        closeKitchenMovementModal(true);
+        await loadAdminData();
+        showToast(movementType === 'Added' ? 'Stock added and recorded.' : 'Stock deducted and recorded.');
+    } catch (error) {
+        console.error('Error saving kitchen stock movement:', error);
+        if (isKitchenPermissionDenied(error)) showKitchenPermissionError();
+        else showToast('Unable to save the stock movement.');
+    } finally {
+        kitchenMovementSubmitting = false;
+        kitchenMovementSubmitButton.disabled = false;
+    }
+};
+
+const loadKitchenData = (snapshot) => {
+    const data = snapshot?.val() || {};
+    kitchenItemEntriesCache = Object.entries(data.items || {});
+    kitchenTransactionEntriesCache = Object.entries(data.transactions || {});
+    renderKitchenManagement();
+};
+
 const updateAdminTotals = () => {
     const allStudents = adminApplicationEntriesCache;
     const activeStudents = allStudents.filter(([, data]) => isActiveResident(data));
@@ -1479,6 +1918,16 @@ const loadAdminData = async () => {
         adminReceiptEntriesCache = receiptEntries;
         adminContactMessageEntriesCache = contactMessageEntries;
         adminExpenseEntriesCache = expenseEntries;
+        try {
+            const kitchenSnapshot = await firebaseDatabase.ref('kitchenManagement').once('value');
+            loadKitchenData(kitchenSnapshot);
+        } catch (error) {
+            console.error('Error loading kitchen inventory:', error);
+            if (kitchenInventoryBody) kitchenInventoryBody.innerHTML = '<tr><td colspan="7">Failed to load kitchen inventory.</td></tr>';
+            if (kitchenHistoryBody) kitchenHistoryBody.innerHTML = '<tr><td colspan="8">Failed to load stock history.</td></tr>';
+            if (isKitchenPermissionDenied(error)) showKitchenPermissionError();
+            else showToast('Unable to load kitchen data.');
+        }
         const filteredApplicationEntries = filterApplicationEntries(applicationEntries, adminSearchInput?.value || '');
         renderApplicationsTable(filteredApplicationEntries);
         renderReceiptsTable(filterReceiptEntries(receiptEntries, receiptSearchInput?.value));
@@ -1493,6 +1942,8 @@ const loadAdminData = async () => {
         if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
         if (contactMessagesTableBody) contactMessagesTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
         if (expensesTableBody) expensesTableBody.innerHTML = '<tr><td colspan="7">Failed to load expenses.</td></tr>';
+        if (kitchenInventoryBody) kitchenInventoryBody.innerHTML = '<tr><td colspan="7">Failed to load kitchen inventory.</td></tr>';
+        if (kitchenHistoryBody) kitchenHistoryBody.innerHTML = '<tr><td colspan="8">Failed to load stock history.</td></tr>';
         showToast('Unable to load admin dashboard data.');
     }
 };
@@ -1564,6 +2015,33 @@ const initAdminDashboard = () => {
         const deleteButton = event.target.closest('[data-expense-delete]');
         if (editButton) editExpense(editButton.dataset.expenseEdit);
         if (deleteButton) deleteExpense(deleteButton.dataset.expenseDelete);
+    });
+
+    kitchenItemForm?.addEventListener('submit', saveKitchenItem);
+    kitchenCancelEditButton?.addEventListener('click', resetKitchenItemForm);
+    [kitchenSearchInput, kitchenStatusFilter].forEach((input) => {
+        input?.addEventListener('input', renderKitchenInventory);
+        input?.addEventListener('change', renderKitchenInventory);
+    });
+    [kitchenHistorySearchInput, kitchenHistoryTypeInput, kitchenHistoryFromInput, kitchenHistoryToInput].forEach((input) => {
+        input?.addEventListener('input', renderKitchenHistory);
+        input?.addEventListener('change', renderKitchenHistory);
+    });
+    kitchenInventoryBody?.addEventListener('click', (event) => {
+        const addButton = event.target.closest('[data-kitchen-add]');
+        const subtractButton = event.target.closest('[data-kitchen-subtract]');
+        const editButton = event.target.closest('[data-kitchen-edit]');
+        const deleteButton = event.target.closest('[data-kitchen-delete]');
+        if (addButton) openKitchenMovementModal(addButton.dataset.kitchenAdd, 'Added');
+        if (subtractButton) openKitchenMovementModal(subtractButton.dataset.kitchenSubtract, 'Subtracted');
+        if (editButton) editKitchenItem(editButton.dataset.kitchenEdit);
+        if (deleteButton) deleteKitchenItem(deleteButton.dataset.kitchenDelete);
+    });
+    kitchenMovementForm?.addEventListener('submit', saveKitchenMovement);
+    document.getElementById('kitchenMovementClose')?.addEventListener('click', closeKitchenMovementModal);
+    document.getElementById('kitchenMovementCancel')?.addEventListener('click', closeKitchenMovementModal);
+    kitchenMovementModal?.addEventListener('click', (event) => {
+        if (event.target === kitchenMovementModal) closeKitchenMovementModal();
     });
 
     if (sendReminderToAllButton) {
@@ -1897,6 +2375,7 @@ window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         closeModalWindow();
         closeLightbox();
+        closeKitchenMovementModal();
     }
 });
 

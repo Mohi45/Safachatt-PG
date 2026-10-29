@@ -123,6 +123,20 @@ For production, use these rules to restrict access:
         ".validate": "newData.hasChildren(['title', 'amount', 'category', 'date']) && newData.child('title').isString() && newData.child('amount').isNumber() && newData.child('category').isString() && newData.child('date').isString()"
       }
     },
+    "kitchenManagement": {
+      ".read": "auth != null && auth.token.admin === true",
+      ".write": "auth != null && auth.token.admin === true",
+      "items": {
+        "$itemId": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['name', 'unit', 'stock', 'minimumStock', 'updatedAt']) && newData.child('name').isString() && newData.child('unit').isString() && newData.child('stock').isNumber() && newData.child('stock').val() >= 0 && newData.child('minimumStock').isNumber() && newData.child('minimumStock').val() >= 0 && newData.child('updatedAt').isString())"
+        }
+      },
+      "transactions": {
+        "$transactionId": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['itemId', 'itemName', 'type', 'previousQuantity', 'quantity', 'balance', 'unit', 'timestamp', 'reason', 'admin']) && newData.child('itemId').isString() && newData.child('itemName').isString() && (newData.child('type').val() === 'Added' || newData.child('type').val() === 'Subtracted' || newData.child('type').val() === 'Adjustment') && newData.child('previousQuantity').isNumber() && newData.child('previousQuantity').val() >= 0 && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('balance').isNumber() && newData.child('balance').val() >= 0 && newData.child('unit').isString() && newData.child('timestamp').isString() && newData.child('reason').isString() && newData.child('admin').isString())"
+        }
+      }
+    },
     "contactMessages": {
       ".read": "auth != null && auth.token.admin === true",
       "$messageId": {
@@ -134,9 +148,11 @@ For production, use these rules to restrict access:
 }
 ```
 
-After updating the rules, publish them in Firebase Console under **Realtime Database → Rules**. The rules in `database.rules.json` and this example must both include the `expenses` section, otherwise expense saves will fail with `PERMISSION_DENIED`.
+After updating the rules, publish them in Firebase Console under **Realtime Database → Rules**. The deployed rules must include both the `expenses` and `kitchenManagement` sections or their respective dashboard features will fail with `PERMISSION_DENIED`. If Kitchen Management reports `permission_denied` at `/kitchenManagement`, deploy the complete `database.rules.json` ruleset to the same Firebase project/database configured in `script.js`, then refresh the admin dashboard.
 
 These rules allow visitors to create a new application or contact message without signing in, but prevent them from reading, editing, or deleting data. Only an admin account with the custom claim can read or manage the collections. Anonymous Authentication is optional with these rules.
+
+Kitchen inventory and movement records are readable and writable only by authenticated users with the admin custom claim. Item stock and its transaction history are saved together in one Realtime Database transaction to preserve accurate balances when multiple admins update stock at the same time.
 
 ## Step 6: Verify the Database URL
 
@@ -171,6 +187,20 @@ applications/
       ├── roomType: "Double Sharing"
       ├── submittedAt: "2026-05-15T10:30:00Z"
       └── ... (other fields)
+```
+
+Kitchen inventory is stored separately from financial expenses. The stock balance and movement records live together under `kitchenManagement`:
+
+```
+kitchenManagement/
+  ├── items/[itemId]/
+  │   ├── name, unit
+  │   ├── stock, minimumStock
+  │   └── createdAt, updatedAt
+  └── transactions/[transactionId]/
+      ├── itemId, itemName, type
+      ├── previousQuantity, quantity, balance, unit
+      └── timestamp, reason, admin
 ```
 
 ## Testing

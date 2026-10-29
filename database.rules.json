@@ -21,6 +21,20 @@
                 ".validate": "newData.hasChildren(['title', 'amount', 'category', 'date']) && newData.child('title').isString() && newData.child('amount').isNumber() && newData.child('category').isString() && newData.child('date').isString()"
             }
         },
+        "kitchenManagement": {
+            ".read": "auth != null && auth.token.admin === true",
+            ".write": "auth != null && auth.token.admin === true",
+            "items": {
+                "$itemId": {
+                    ".validate": "!newData.exists() || (newData.hasChildren(['name', 'unit', 'stock', 'minimumStock', 'updatedAt']) && newData.child('name').isString() && newData.child('unit').isString() && newData.child('stock').isNumber() && newData.child('stock').val() >= 0 && newData.child('minimumStock').isNumber() && newData.child('minimumStock').val() >= 0 && newData.child('updatedAt').isString())"
+                }
+            },
+            "transactions": {
+                "$transactionId": {
+                    ".validate": "!newData.exists() || (newData.hasChildren(['itemId', 'itemName', 'type', 'previousQuantity', 'quantity', 'balance', 'unit', 'timestamp', 'reason', 'admin']) && newData.child('itemId').isString() && newData.child('itemName').isString() && (newData.child('type').val() === 'Added' || newData.child('type').val() === 'Subtracted' || newData.child('type').val() === 'Adjustment') && newData.child('previousQuantity').isNumber() && newData.child('previousQuantity').val() >= 0 && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('balance').isNumber() && newData.child('balance').val() >= 0 && newData.child('unit').isString() && newData.child('timestamp').isString() && newData.child('reason').isString() && newData.child('admin').isString())"
+                }
+            }
+        },
         "contactMessages": {
             ".read": "auth != null && auth.token.admin === true",
             "$messageId": {

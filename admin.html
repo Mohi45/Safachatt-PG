@@ -83,6 +83,7 @@
                         Management</button>
                     <button type="button" class="btn admin-tab-button" data-panel="receipts">Payment Receipts</button>
                     <button type="button" class="btn admin-tab-button" data-panel="expenses">Expenses</button>
+                    <button type="button" class="btn admin-tab-button" data-panel="kitchen">Kitchen Management</button>
                     <button type="button" class="btn admin-tab-button" data-panel="contact-messages">Contact
                         Messages</button>
                 </div>
@@ -411,6 +412,173 @@
                 </div>
             </div>
 
+            <div class="container admin-table-container admin-panel kitchen-panel hidden reveal" data-panel="kitchen">
+                <div class="kitchen-heading">
+                    <div>
+                        <h3>Kitchen Management</h3>
+                        <p class="admin-table-note">Monitor stock levels and keep a complete record of kitchen movements.</p>
+                    </div>
+                </div>
+                <div class="kitchen-summary-grid" aria-label="Kitchen inventory summary">
+                    <article class="kitchen-summary-card">
+                        <span class="kitchen-summary-icon">▦</span>
+                        <div><strong id="kitchenTotalItems">0</strong><span>Inventory items</span></div>
+                    </article>
+                    <article class="kitchen-summary-card">
+                        <span class="kitchen-summary-icon">◉</span>
+                        <div><strong id="kitchenTotalStock">0</strong><span>Available stock <small>raw total; mixed units</small></span></div>
+                    </article>
+                    <article class="kitchen-summary-card kitchen-summary-warning">
+                        <span class="kitchen-summary-icon">!</span>
+                        <div><strong id="kitchenLowStock">0</strong><span>Low stock</span></div>
+                    </article>
+                    <article class="kitchen-summary-card kitchen-summary-danger">
+                        <span class="kitchen-summary-icon">×</span>
+                        <div><strong id="kitchenOutOfStock">0</strong><span>Out of stock</span></div>
+                    </article>
+                    <article class="kitchen-summary-card">
+                        <span class="kitchen-summary-icon">↗</span>
+                        <div><strong id="kitchenRecentAdded">0</strong><span>Added in last 30 days <small>raw quantity; mixed units</small></span></div>
+                    </article>
+                    <article class="kitchen-summary-card">
+                        <span class="kitchen-summary-icon">↘</span>
+                        <div><strong id="kitchenRecentDeducted">0</strong><span>Deducted in last 30 days <small>raw quantity; mixed units</small></span></div>
+                    </article>
+                </div>
+
+                <section class="kitchen-attention" aria-labelledby="kitchenAttentionHeading">
+                    <div class="kitchen-section-heading">
+                        <div>
+                            <h4 id="kitchenAttentionHeading">Needs attention</h4>
+                            <p>Items at or below their minimum required stock.</p>
+                        </div>
+                        <span id="kitchenAttentionCount" class="kitchen-attention-count">0 items</span>
+                    </div>
+                    <div id="kitchenAttentionList" class="kitchen-attention-list">
+                        <p class="kitchen-empty">No items need replenishment.</p>
+                    </div>
+                </section>
+
+                <section class="kitchen-inventory-section" aria-labelledby="kitchenInventoryHeading">
+                    <div class="kitchen-section-heading">
+                        <div>
+                            <h4 id="kitchenInventoryHeading">Inventory</h4>
+                            <p>Add inventory items and set minimum stock thresholds.</p>
+                        </div>
+                    </div>
+                    <form id="kitchenItemForm" class="kitchen-item-form" novalidate>
+                        <input id="kitchenItemId" type="hidden" />
+                        <div class="kitchen-form-grid">
+                            <div class="field-group">
+                                <label for="kitchenItemName">Item name *</label>
+                                <input id="kitchenItemName" type="text" maxlength="80" placeholder="Rice" required />
+                            </div>
+                            <div class="field-group">
+                                <label for="kitchenItemUnit">Unit *</label>
+                                <select id="kitchenItemUnit" required>
+                                    <option value="">Choose unit</option>
+                                    <option value="KG">KG</option>
+                                    <option value="Gram">Gram</option>
+                                    <option value="Litre">Litre</option>
+                                    <option value="Millilitre">Millilitre</option>
+                                    <option value="Pieces">Pieces</option>
+                                    <option value="Packets">Packets</option>
+                                    <option value="Bags">Bags</option>
+                                    <option value="Bottles">Bottles</option>
+                                    <option value="Dozen">Dozen</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="field-group" id="kitchenInitialStockGroup">
+                                <label for="kitchenItemInitialStock">Starting stock</label>
+                                <input id="kitchenItemInitialStock" type="number" min="0" step="0.001" value="0" />
+                            </div>
+                            <div class="field-group">
+                                <label for="kitchenItemMinimum">Minimum required stock *</label>
+                                <input id="kitchenItemMinimum" type="number" min="0" step="0.001" value="0" required />
+                            </div>
+                        </div>
+                        <div class="kitchen-form-actions">
+                            <button id="kitchenCancelEdit" type="button" class="btn btn-secondary hidden">Cancel edit</button>
+                            <button id="kitchenItemSubmit" type="submit" class="btn btn-primary">Add inventory item</button>
+                        </div>
+                    </form>
+
+                    <div class="kitchen-filters">
+                        <label class="sr-only" for="kitchenSearch">Search inventory</label>
+                        <input id="kitchenSearch" type="search" class="admin-search-input" placeholder="Search inventory" autocomplete="off" />
+                        <label class="sr-only" for="kitchenStatusFilter">Filter by stock status</label>
+                        <select id="kitchenStatusFilter" class="admin-search-input">
+                            <option value="">All stock statuses</option>
+                            <option value="available">Available</option>
+                            <option value="low">Low Stock</option>
+                            <option value="out">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="admin-table-scroll kitchen-table-scroll">
+                        <table class="admin-table kitchen-table">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Current Stock</th>
+                                    <th>Unit</th>
+                                    <th>Minimum Stock</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kitchenInventoryBody">
+                                <tr><td colspan="7">Loading kitchen inventory…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="kitchen-history-section" aria-labelledby="kitchenHistoryHeading">
+                    <div class="kitchen-section-heading">
+                        <div>
+                            <h4 id="kitchenHistoryHeading">Stock transaction history</h4>
+                            <p>Every addition, deduction, and starting-stock adjustment is retained.</p>
+                        </div>
+                    </div>
+                    <div class="kitchen-history-filters">
+                        <label class="sr-only" for="kitchenHistorySearch">Filter history by item</label>
+                        <input id="kitchenHistorySearch" type="search" class="admin-search-input" placeholder="Filter by item name" autocomplete="off" />
+                        <label class="sr-only" for="kitchenHistoryType">Filter by transaction type</label>
+                        <select id="kitchenHistoryType" class="admin-search-input">
+                            <option value="">All transaction types</option>
+                            <option value="Added">Added</option>
+                            <option value="Subtracted">Subtracted</option>
+                            <option value="Adjustment">Adjustment</option>
+                        </select>
+                        <label class="sr-only" for="kitchenHistoryFrom">Transactions from date</label>
+                        <input id="kitchenHistoryFrom" type="date" class="admin-search-input" />
+                        <label class="sr-only" for="kitchenHistoryTo">Transactions through date</label>
+                        <input id="kitchenHistoryTo" type="date" class="admin-search-input" />
+                    </div>
+                    <div class="admin-table-scroll kitchen-table-scroll">
+                        <table class="admin-table kitchen-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date &amp; Time</th>
+                                    <th>Item</th>
+                                    <th>Type</th>
+                                    <th>Previous</th>
+                                    <th>Changed</th>
+                                    <th>Balance</th>
+                                    <th>Reason / Remarks</th>
+                                    <th>Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kitchenHistoryBody">
+                                <tr><td colspan="8">Loading stock history…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
         </section>
     </main>
     <footer class="site-footer reveal">
@@ -453,6 +621,39 @@
             <p>Use the refresh button if you want to reload registration and contact details.</p>
             <button id="closeModal" class="btn btn-primary">Close</button>
         </div>
+    </div>
+    <div id="kitchenMovementModal" class="kitchen-modal" aria-hidden="true">
+        <form id="kitchenMovementForm" class="kitchen-modal-card" role="dialog" aria-modal="true" aria-labelledby="kitchenMovementTitle">
+            <button type="button" id="kitchenMovementClose" class="kitchen-modal-close" aria-label="Close dialog">×</button>
+            <h2 id="kitchenMovementTitle">Add stock</h2>
+            <p id="kitchenMovementDescription">Record an inventory movement.</p>
+            <div class="kitchen-modal-fields">
+                <div class="field-group">
+                    <label for="kitchenMovementItem">Item</label>
+                    <input id="kitchenMovementItem" type="text" readonly />
+                </div>
+                <div class="field-group">
+                    <label for="kitchenMovementQuantity">Quantity *</label>
+                    <input id="kitchenMovementQuantity" type="number" min="0.001" step="0.001" required />
+                </div>
+                <div class="field-group">
+                    <label for="kitchenMovementUnit">Unit</label>
+                    <input id="kitchenMovementUnit" type="text" readonly />
+                </div>
+                <div class="field-group">
+                    <label for="kitchenMovementDate">Date and time *</label>
+                    <input id="kitchenMovementDate" type="datetime-local" required />
+                </div>
+                <div class="field-group kitchen-movement-reason">
+                    <label id="kitchenMovementReasonLabel" for="kitchenMovementReason">Remarks</label>
+                    <textarea id="kitchenMovementReason" rows="3" maxlength="240" placeholder="Optional remarks"></textarea>
+                </div>
+            </div>
+            <div class="kitchen-modal-actions">
+                <button type="button" id="kitchenMovementCancel" class="btn btn-secondary">Cancel</button>
+                <button type="submit" id="kitchenMovementSubmit" class="btn btn-primary">Save movement</button>
+            </div>
+        </form>
     </div>
     <!-- Firebase SDK (Compat version for compatibility) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
