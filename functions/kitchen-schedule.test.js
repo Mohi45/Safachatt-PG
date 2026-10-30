@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
 const {
     DAILY_DEDUCTIONS,
     applyScheduledDeductions,
@@ -119,4 +121,13 @@ test('only compatible mass and volume units are converted', () => {
     assert.equal(convertScheduledQuantity(4, 'KG', 'Gram'), 4000);
     assert.equal(convertScheduledQuantity(1, 'Litre', 'Millilitre'), 1000);
     assert.equal(convertScheduledQuantity(1, 'KG', 'Litre'), null);
+});
+
+test('schedule module exposes the same API to browser scripts', () => {
+    const browserContext = vm.createContext({});
+    const source = fs.readFileSync(require.resolve('./kitchen-schedule'), 'utf8');
+    vm.runInContext(source, browserContext);
+
+    assert.equal(typeof browserContext.KitchenSchedule.applyScheduledDeductions, 'function');
+    assert.equal(browserContext.KitchenSchedule.getDateKey(new Date('2026-10-28T18:35:00.000Z')), '2026-10-29');
 });

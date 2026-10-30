@@ -463,11 +463,11 @@
                     <div class="kitchen-section-heading">
                         <div>
                             <h4 id="kitchenScheduleHeading">Automatic deductions</h4>
-                            <p>Daily at 00:05 IST; weekly items run on Monday. Shortages are skipped and recorded.</p>
+                            <p>Runs once per India date when an admin opens the dashboard. Successful deductions appear in stock history and below; weekly items run on Mondays. Shortages are logged without deducting, and missed days are not replayed.</p>
                         </div>
                     </div>
                     <div id="kitchenScheduleRuns" class="kitchen-schedule-runs">
-                        <p class="kitchen-empty">The first automatic deduction run is scheduled for 00:05 IST.</p>
+                        <p class="kitchen-empty">Scheduled deductions run when an admin opens this dashboard.</p>
                     </div>
                 </section>
 
@@ -672,7 +672,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
-    <script src="script.js?v=payment-receipts-table"></script>
+    <script src="functions/kitchen-schedule.js"></script>
+    <script src="script.js?v=kitchen-dashboard-deductions"></script>
 </body>
 
 </html>

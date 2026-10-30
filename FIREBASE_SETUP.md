@@ -203,9 +203,9 @@ kitchenManagement/
       └── timestamp, reason, admin
 ```
 
-### Scheduled Kitchen Consumption
+### Kitchen Consumption on the Spark Plan
 
-The Firebase scheduled function runs every day at **00:05 India Standard Time**. Daily consumption is recorded every day; weekly consumption is recorded on Mondays. It matches existing inventory items by name (including common spelling alternatives) and converts between KG/Gram or Litre/Millilitre when needed. Missing items are created with zero stock. If stock is insufficient or the item's unit is incompatible, the deduction is skipped rather than making stock negative; the shortage is recorded and shown in Kitchen Management.
+On the Spark plan, scheduled Cloud Functions cannot run. Instead, when an authorized admin opens the dashboard, it transactionally processes that day's deductions once per India Standard Time date. Daily consumption is recorded each day; weekly consumption is recorded on Mondays. It matches existing inventory items by name (including common spelling alternatives) and converts between KG/Gram or Litre/Millilitre when needed. Missing items are created with zero stock. If stock is insufficient or the item's unit is incompatible, the deduction is skipped rather than making stock negative; the shortage is recorded and shown in Kitchen Management. Days when no admin opens the dashboard are not replayed later. The dashboard must be served with `functions/kitchen-schedule.js` available.
 
 | Item | Scheduled deduction |
 | --- | --- |
@@ -225,16 +225,17 @@ The Firebase scheduled function runs every day at **00:05 India Standard Time**.
 | Jira | 25 Gram daily |
 | ChaiPatti | 30 Gram daily |
 
-Deploy the function to the same Firebase project used by the dashboard. Scheduled Cloud Functions require the Blaze (pay-as-you-go) plan and Firebase CLI:
+Publish the Realtime Database rules to the same Firebase project used by the dashboard. Dashboard-triggered deductions work on the Spark plan:
 
 ```bash
 npm install -g firebase-tools
 firebase login
-npm --prefix functions install
-firebase deploy --project safachattpg --only database,functions:scheduledKitchenDeductions
+firebase deploy --project safachattpg --only database
 ```
 
-The first scheduled run occurs at the next 00:05 IST after deployment. Check **Firebase Console → Functions → Logs** for run failures. The dashboard's **Automatic deductions** section shows recent completed runs and any skipped shortages. Each date is recorded atomically with its stock changes, so retries do not deduct twice.
+The dashboard's **Automatic deductions** section shows recent processed dates and any skipped shortages. Each day's marker and stock changes are recorded atomically, so multiple admin sessions cannot deduct twice.
+
+If you later upgrade to Blaze and deploy the optional Cloud Function instead, it runs every day at 00:05 IST even when the dashboard is closed. Do not deploy both automation modes at the same time: they use the same per-date idempotency marker, so whichever runs first processes that date.
 
 ## Testing
 

@@ -537,7 +537,10 @@ const grantAdminDashboardAccess = () => {
     adminDashboardAccessGranted = true;
     adminLoginOverlay?.classList.add('hidden');
     document.body.classList.remove('admin-login-hidden');
-    loadAdminData();
+    void (async () => {
+        await runKitchenDeductionsOnDashboardOpen();
+        await loadAdminData();
+    })();
 };
 
 const requireAdminLogin = () => {
@@ -1475,6 +1478,42 @@ const showKitchenPermissionError = () => {
     showToast('Firebase denied kitchen access. Publish the latest database.rules.json in Realtime Database → Rules, then refresh.');
 };
 
+let kitchenDashboardDeductionRunning = false;
+const runKitchenDeductionsOnDashboardOpen = async () => {
+    if (!firebaseDatabase || !firebaseAuth?.currentUser || !window.KitchenSchedule || kitchenDashboardDeductionRunning) return;
+    kitchenDashboardDeductionRunning = true;
+    const now = new Date();
+    const dateKey = window.KitchenSchedule.getDateKey(now);
+    let alreadyRun = false;
+    try {
+        const result = await firebaseDatabase.ref('kitchenManagement').transaction((currentData) => {
+            alreadyRun = Boolean(currentData?.scheduledDeductions?.[dateKey]);
+            if (alreadyRun) return;
+            const applied = window.KitchenSchedule.applyScheduledDeductions({
+                currentData,
+                dateKey,
+                runAt: now.toISOString(),
+                transactionIdFor: (scheduleKey) => `${dateKey}-${scheduleKey}`
+            });
+            if (!applied.committed) {
+                alreadyRun = true;
+                return;
+            }
+            return applied.data;
+        }, undefined, false);
+        if (!result.committed && !alreadyRun) {
+            throw new Error(`Kitchen deductions for ${dateKey} were not committed.`);
+        }
+        if (result.committed) showToast("Today's scheduled kitchen deductions were processed.");
+    } catch (error) {
+        console.error('Error processing dashboard kitchen deductions:', error);
+        if (isKitchenPermissionDenied(error)) showKitchenPermissionError();
+        else showToast("Unable to process today's kitchen deductions.");
+    } finally {
+        kitchenDashboardDeductionRunning = false;
+    }
+};
+
 const getKitchenItemStock = (item) => {
     const stock = Number(item?.stock);
     return Number.isFinite(stock) && stock >= 0 ? stock : 0;
@@ -1622,7 +1661,7 @@ const renderKitchenScheduleRuns = () => {
         .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
         .slice(0, 7);
     if (!runs.length) {
-        kitchenScheduleRuns.innerHTML = '<p class="kitchen-empty">The first automatic deduction run is scheduled for 00:05 IST.</p>';
+        kitchenScheduleRuns.innerHTML = '<p class="kitchen-empty">Scheduled deductions run when an admin opens this dashboard.</p>';
         return;
     }
     kitchenScheduleRuns.innerHTML = runs.map(([date, run]) => {
@@ -1635,9 +1674,10 @@ const renderKitchenScheduleRuns = () => {
                 <span>${deducted} deducted</span>
                 <span class="${skipped.length ? 'kitchen-schedule-warning' : ''}">${skipped.length} skipped</span>
             </summary>
-            ${skipped.length ? `<ul>${skipped.map((entry) =>
-                `<li><strong>${sanitizeText(entry.itemName || 'Inventory item')}:</strong> ${sanitizeText(entry.reason || 'Deduction skipped.')}</li>`
-            ).join('')}</ul>` : '<p class="kitchen-schedule-success">All scheduled deductions were completed.</p>'}
+            ${entries.length ? `<ul>${entries.map((entry) => entry.status === 'deducted'
+                ? `<li class="kitchen-schedule-success"><strong>${sanitizeText(entry.itemName || 'Inventory item')}:</strong> −${formatKitchenQuantity(entry.requestedQuantity)} ${sanitizeText(entry.unit || '')}; balance ${formatKitchenQuantity(entry.balance)} ${sanitizeText(entry.unit || '')}</li>`
+                : `<li class="kitchen-schedule-warning"><strong>${sanitizeText(entry.itemName || 'Inventory item')}:</strong> ${sanitizeText(entry.reason || 'Deduction skipped.')}</li>`
+            ).join('')}</ul>` : '<p class="kitchen-empty">No scheduled items for this date.</p>'}
         </details>`;
     }).join('');
 };

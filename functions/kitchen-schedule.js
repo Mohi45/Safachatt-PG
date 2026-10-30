@@ -1,3 +1,8 @@
+(function (root, factory) {
+    const schedule = factory();
+    if (typeof module === 'object' && module.exports) module.exports = schedule;
+    else root.KitchenSchedule = schedule;
+})(globalThis, () => {
 'use strict';
 
 const DAILY_DEDUCTIONS = [
@@ -190,10 +195,11 @@ const applyScheduledDeductions = ({
     return { committed: true, data, run };
 };
 
-module.exports = {
+return {
     DAILY_DEDUCTIONS,
     applyScheduledDeductions,
     convertScheduledQuantity,
     getDateKey,
     getWeekday
 };
+});

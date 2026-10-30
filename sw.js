@@ -1,4 +1,4 @@
-const CACHE_NAME = 'safachatt-pg-v5';
+const CACHE_NAME = 'safachatt-pg-v6';
 const APP_SHELL = [
     './',
     './index.html',
@@ -14,6 +14,7 @@ const APP_SHELL = [
     './testimonials.html',
     './style.css',
     './script.js',
+    './functions/kitchen-schedule.js',
     './image.png',
     './images/tenant-signature.png',
     './manifest.json'
