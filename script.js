@@ -138,9 +138,9 @@ const adminTotalApplications = document.getElementById('adminTotalApplications')
 const adminActiveStudents = document.getElementById('adminActiveStudents');
 const refreshAdminButton = document.getElementById('refreshAdmin');
 const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+const adminLoginForm = document.getElementById('adminLoginForm');
 const adminEmailInput = document.getElementById('adminEmail');
 const adminPasswordInput = document.getElementById('adminPassword');
-const adminUnlockButton = document.getElementById('adminUnlockButton');
 const adminTabButtons = document.querySelectorAll('.admin-tab-button');
 const adminPanels = document.querySelectorAll('.admin-panel');
 const adminLoginButton = document.getElementById('adminLoginButton');
@@ -2028,15 +2028,10 @@ const initAdminDashboard = () => {
         });
     }
 
-    if (adminUnlockButton) {
-        adminUnlockButton.addEventListener('click', unlockAdminAccess);
-    }
-
-    if (adminPasswordInput) {
-        adminPasswordInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                unlockAdminAccess();
-            }
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            unlockAdminAccess();
         });
     }
 
