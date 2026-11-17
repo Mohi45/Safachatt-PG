@@ -645,6 +645,23 @@ const formatDateValue = (value) => {
     return `${year}-${month}-${day}`;
 };
 
+const getMonthsOfStay = (moveInValue, endValue) => {
+    const moveInDate = parseDateValue(moveInValue);
+    if (!moveInDate) return '-';
+
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endDate = parseDateValue(endValue) || todayDate;
+    if (moveInDate > endDate) return '-';
+
+    let months = (endDate.getFullYear() - moveInDate.getFullYear()) * 12
+        + endDate.getMonth() - moveInDate.getMonth();
+    const lastDayOfEndMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
+    if (endDate.getDate() < Math.min(moveInDate.getDate(), lastDayOfEndMonth)) months -= 1;
+
+    return `${months} ${months === 1 ? 'month' : 'months'}`;
+};
+
 const getRecurringDueDate = (data) => {
     const moveInDate = parseDateValue(data?.moveInDate);
     const today = new Date();
@@ -1087,7 +1104,7 @@ const handleApplicationSearch = () => {
 const renderApplicationsTable = (entries) => {
     if (!adminApplicationsTableBody) return;
     if (!entries.length) {
-        adminApplicationsTableBody.innerHTML = '<tr><td colspan="8" class="admin-table-empty">No applicants match your search.</td></tr>';
+        adminApplicationsTableBody.innerHTML = '<tr><td colspan="9" class="admin-table-empty">No applicants match your search.</td></tr>';
         return;
     }
 
@@ -1111,6 +1128,7 @@ const renderApplicationsTable = (entries) => {
             <td><div class="applicant-name"><strong>${sanitizeText(name)}</strong><span>Move in ${sanitizeText(formatDateValue(data?.moveInDate) || '-')}</span></div></td>
             <td><div class="applicant-contact"><a href="mailto:${sanitizeText(data?.email || '')}">${sanitizeText(data?.email || '-')}</a><a href="tel:${sanitizeText(data?.mobile || '')}">${sanitizeText(data?.mobile || '-')}</a></div></td>
             <td><input type="date" class="admin-move-out-date" data-entry-id="${sanitizeText(id)}" value="${sanitizeText(moveOutDate)}" aria-label="Move out date for ${sanitizeText(name)}" /></td>
+            <td>${sanitizeText(getMonthsOfStay(data?.moveInDate, status.label === 'Checked Out' ? moveOutDate : ''))}</td>
             <td><span class="admin-status-badge ${status.className}">${sanitizeText(status.label)}</span></td>
             <td>${renderDocumentCell(data?.passportPhoto || '-', id, 'Applicant photo', 'passportPhoto', 'image/*')}</td>
             <td>${renderDocumentCell(data?.aadhaarUpload || '-', id, 'Aadhaar document', 'aadhaarUpload', 'image/*,application/pdf')}</td>
@@ -2008,7 +2026,7 @@ const loadAdminData = async () => {
         renderRentDueTable(applicationEntries);
     } catch (error) {
         console.error('Error loading admin data:', error);
-        if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="8" class="admin-table-empty">Failed to load applications.</td></tr>';
+        if (adminApplicationsTableBody) adminApplicationsTableBody.innerHTML = '<tr><td colspan="9" class="admin-table-empty">Failed to load applications.</td></tr>';
         if (receiptsTableBody) receiptsTableBody.innerHTML = '<tr><td colspan="9">Failed to load payment receipts.</td></tr>';
         if (contactMessagesTableBody) contactMessagesTableBody.innerHTML = '<tr><td colspan="5">Failed to load contact messages.</td></tr>';
         if (expensesTableBody) expensesTableBody.innerHTML = '<tr><td colspan="7">Failed to load expenses.</td></tr>';
